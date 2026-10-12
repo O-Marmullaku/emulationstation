@@ -417,8 +417,9 @@ void KeyMappingFile::save(const std::string& fileName)
 	
 	std::string data = s.GetString();
 
-	if (!Utils::FileSystem::isDirectory(Utils::FileSystem::getParent(path)))
-		Utils::FileSystem::createDirectory(Utils::FileSystem::getParent(path));
+	const auto target = fileName.empty() ? path : fileName;
+	if (!Utils::FileSystem::isDirectory(Utils::FileSystem::getParent(target)))
+		Utils::FileSystem::createDirectory(Utils::FileSystem::getParent(target));
 
 	if (fileName.empty())
 	{

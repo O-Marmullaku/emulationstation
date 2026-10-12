@@ -417,7 +417,7 @@ void ISimpleGameListView::launchSelectedGame()
 			if (FamilyProfiles::enabled() || (SaveStateRepository::isEnabled(cursor) &&
 				(cursor->getCurrentGameSetting("savestates") == "1" || (cursor->getCurrentGameSetting("savestates") == "2" && cursor->getSourceFileData()->getSystem()->getSaveStateRepository()->hasSaveStates(cursor)))))
 			{
-				mWindow->pushGui(new GuiSaveState(mWindow, cursor, [this, cursor](SaveState* state)
+				GuiSaveState::showLaunchMenu(mWindow, cursor, [this, cursor](SaveState* state)
 				{
 					Sound::getFromTheme(getTheme(), getName(), "launch")->play();
 
@@ -425,7 +425,7 @@ void ISimpleGameListView::launchSelectedGame()
 					options.saveStateInfo = state;
 					ViewController::get()->launch(cursor, options);
 				}
-				));
+				);
 			}
 			else
 			{

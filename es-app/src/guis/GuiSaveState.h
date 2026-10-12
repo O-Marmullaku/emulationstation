@@ -26,6 +26,7 @@ class GuiSaveState : public GuiComponent
 {
 public:
 	GuiSaveState(Window* window, FileData* game, const std::function<void(SaveState* state)>& callback);
+	static void showLaunchMenu(Window* window, FileData* game, const std::function<void(SaveState*)>& callback);
 
 	bool input(InputConfig* config, Input input) override;
 	void onSizeChanged() override;

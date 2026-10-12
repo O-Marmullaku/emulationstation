@@ -255,8 +255,9 @@ void AudioManager::playRandomMusic(bool continueIfPlaying)
     if (!mCurrentThemeMusicDirectory.empty())
         getMusicIn(mCurrentThemeMusicDirectory, musics);
 
-    if (musics.empty())
-        getMusicIn(Paths::getUserMusicPath(), musics);
+    getMusicIn(Paths::getUserMusicPath(), musics);
+	if (Paths::getSharedUserMusicPath() != Paths::getUserMusicPath())
+		getMusicIn(Paths::getSharedUserMusicPath(), musics);
 
     if (musics.empty())
         getMusicIn(Paths::getMusicPath(), musics);

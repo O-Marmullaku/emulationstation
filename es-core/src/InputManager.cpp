@@ -1276,12 +1276,12 @@ void InputManager::doOnFinish()
 
 std::string InputManager::getConfigPath()
 {
-	return Paths::getUserEmulationStationPath() + "/es_input.cfg";
+	return Paths::getProfileConfigFile("es_input.cfg");
 }
 
 std::string InputManager::getTemporaryConfigPath()
 {
-	return Paths::getUserEmulationStationPath() + "/es_last_input.cfg";
+	return Paths::getProfileConfigFile("es_last_input.cfg");
 }
 
 bool InputManager::initialized() const

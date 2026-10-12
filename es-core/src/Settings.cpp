@@ -444,6 +444,27 @@ void saveMap(pugi::xml_node &node, std::map<K, V>& map, const char* type, std::m
 	}
 }
 
+std::function<void()> Settings::fileSaved;
+
+bool Settings::isPersistentSetting(const std::string& name)
+{
+	return std::find(settings_dont_save.begin(), settings_dont_save.end(), name) == settings_dont_save.end();
+}
+
+void Settings::resetSetting(const std::string& name)
+{
+	mStringMap.erase(name);
+	mBoolMap.erase(name);
+	mIntMap.erase(name);
+	mFloatMap.erase(name);
+	if (mDefaultStringMap.count(name)) mStringMap[name] = mDefaultStringMap.at(name);
+	if (mDefaultBoolMap.count(name)) mBoolMap[name] = mDefaultBoolMap.at(name);
+	if (mDefaultIntMap.count(name)) mIntMap[name] = mDefaultIntMap.at(name);
+	if (mDefaultFloatMap.count(name)) mFloatMap[name] = mDefaultFloatMap.at(name);
+	mWasChanged = true;
+	updateCachedSetting(name);
+}
+
 bool Settings::saveFile()
 {
 	if (!mWasChanged)
@@ -484,7 +505,13 @@ bool Settings::saveFile()
 		node.append_attribute("value").set_value(iter->second.c_str());
 	}
 
-	doc.save_file(WINSTRINGW(path).c_str());
+	if (!doc.save_file(WINSTRINGW(path).c_str()))
+	{
+		mWasChanged = true;
+		LOG(LogError) << "Could not save settings: " << path;
+		return false;
+	}
+	if (fileSaved) fileSaved();
 
 	Scripting::fireEvent("config-changed");
 	Scripting::fireEvent("settings-changed");

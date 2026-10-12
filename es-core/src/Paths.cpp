@@ -90,6 +90,7 @@ Paths::Paths()
 #endif
 */
 	loadCustomConfiguration(true); // Load paths overrides from emulationstation.ini file
+	mSharedUserMusicPath = mUserMusicPath;
 }
 
 void Paths::loadCustomConfiguration(bool overridesOnly)

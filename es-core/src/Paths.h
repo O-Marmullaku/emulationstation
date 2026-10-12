@@ -25,6 +25,7 @@ public:
 	// Music
 	static std::string& getMusicPath() { return getInstance()->mMusicPath; }
 	static std::string& getUserMusicPath() { return getInstance()->mUserMusicPath; }
+	static std::string& getSharedUserMusicPath() { return getInstance()->mSharedUserMusicPath; }
 
 	// Themes
 	static std::string& getThemesPath() { return getInstance()->mThemesPath; }
@@ -53,6 +54,8 @@ public:
 	// Emulationstation
 	static std::string& getEmulationStationPath() { return getInstance()->mEmulationStationPath; }
 	static std::string& getUserEmulationStationPath() { return getInstance()->mUserEmulationStationPath; }
+	static std::string& getProfileConfigPath() { return getInstance()->mProfileConfigPath; }
+	static std::string getProfileConfigFile(const std::string& name) { return (getProfileConfigPath().empty() ? getUserEmulationStationPath() : getProfileConfigPath()) + "/" + name; }
 
 	static std::string& getTimeZonesPath() { return getInstance()->mTimeZonesPath; }
 		
@@ -89,6 +92,7 @@ private:
 	std::string mSaveStatesPath;
 	std::string mMusicPath;
 	std::string mUserMusicPath;
+	std::string mSharedUserMusicPath;
 	std::string mThemesPath;
 	std::string mUserThemesPath;
 	std::string mKeyboardMappingsPath;
@@ -101,6 +105,7 @@ private:
 	std::string mUserVideoFiltersPath;
 	std::string mEmulationStationPath;
 	std::string mUserEmulationStationPath;
+	std::string mProfileConfigPath;
 
 	std::string mTimeZonesPath;
 	std::string mRetroachivementSounds;

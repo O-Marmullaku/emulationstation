@@ -233,7 +233,7 @@ inline Profile require(const std::string& requestedId)
 
 class Session {
 public:
-    explicit Session(const std::string& requestedId = std::string())
+    explicit Session(const std::string& requestedId = std::string(), bool preferences = false)
     {
         if (!enabled()) return;
         const Profile profile = require(requestedId);
@@ -241,7 +241,7 @@ public:
         std::error_code directoryError;
         detail::fs::create_directories(profilePath, directoryError);
         if (directoryError) throw std::runtime_error("Could not create the family profile save folder: " + directoryError.message());
-        const auto lockPath = profilePath / ".retrobat-session.lock";
+        const auto lockPath = profilePath / (preferences ? ".retrobat-preferences.lock" : ".retrobat-session.lock");
 #ifdef _WIN32
         handle_ = CreateFileW(lockPath.wstring().c_str(), GENERIC_READ | GENERIC_WRITE, 0, nullptr, OPEN_ALWAYS, FILE_ATTRIBUTE_NORMAL, nullptr);
         if (handle_ == INVALID_HANDLE_VALUE) {

@@ -55,6 +55,9 @@ set(ES_HEADERS
 	${CMAKE_CURRENT_SOURCE_DIR}/src/RetroAchievements.h
 	${CMAKE_CURRENT_SOURCE_DIR}/src/SaveState.h
 	${CMAKE_CURRENT_SOURCE_DIR}/src/SaveStateRepository.h
+	${CMAKE_CURRENT_SOURCE_DIR}/src/FamilyPreferences.h
+	${CMAKE_CURRENT_SOURCE_DIR}/src/FamilyPreferenceStore.h
+	${CMAKE_CURRENT_SOURCE_DIR}/src/FamilyProfileFiles.h
     ${CMAKE_CURRENT_SOURCE_DIR}/src/SaveStateConfigFile.h    
 	${CMAKE_CURRENT_SOURCE_DIR}/src/CustomFeatures.h
 
@@ -164,6 +167,7 @@ set(ES_SOURCES
 	${CMAKE_CURRENT_SOURCE_DIR}/src/RetroAchievements.cpp
 	${CMAKE_CURRENT_SOURCE_DIR}/src/SaveState.cpp
 	${CMAKE_CURRENT_SOURCE_DIR}/src/SaveStateRepository.cpp
+	${CMAKE_CURRENT_SOURCE_DIR}/src/FamilyPreferences.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/src/SaveStateConfigFile.cpp
 	${CMAKE_CURRENT_SOURCE_DIR}/src/CustomFeatures.cpp	
 

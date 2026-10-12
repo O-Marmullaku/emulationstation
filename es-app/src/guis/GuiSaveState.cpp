@@ -7,11 +7,51 @@
 #include "HelpStyle.h"
 #include "SystemConf.h"
 #include "guis/GuiMsgBox.h"
+#include "guis/GuiSettings.h"
 #include "SaveStateRepository.h"
 
 #define WINDOW_HEIGHT Renderer::getScreenHeight() * 0.40f
 
 static int slots = 6; // 5;
+
+void GuiSaveState::showLaunchMenu(Window* window, FileData* game, const std::function<void(SaveState*)>& callback)
+{
+	if (!FamilyProfiles::enabled())
+	{
+		window->pushGui(new GuiSaveState(window, game, callback));
+		return;
+	}
+	try
+	{
+		const auto profile = FamilyProfiles::require("");
+		auto repo = game->getSourceFileData()->getSystem()->getSaveStateRepository();
+		repo->refresh();
+		SaveState* latest = nullptr;
+		for (auto state : repo->getSaveStates(game))
+			if (state->profileId == profile.id && state->isSlotValid() &&
+				(!latest || state->creationDate > latest->creationDate)) latest = state;
+		if (!latest)
+			for (const auto& state : repo->getProfileLaunchStates())
+				if (state->profileId == profile.id) latest = state.get();
+		if (!latest) throw std::runtime_error("The selected profile is no longer available. Switch profile and try again.");
+		auto menu = new GuiSettings(window, game->getName());
+		menu->setSave(false);
+		menu->addEntry("CONTINUE — " + profile.name, false, [menu, callback, latest] {
+			delete menu;
+			callback(latest);
+		});
+		menu->addEntry("OTHER SAVES", true, [window, game, callback, menu] {
+			delete menu;
+			window->pushGui(new GuiSaveState(window, game, callback));
+		});
+		menu->addEntry("START NEW — " + profile.name, false, [menu, callback, repo] {
+			delete menu;
+			callback(repo->getDefaultNewGameSaveState());
+		});
+		window->pushGui(menu);
+	}
+	catch (const std::exception& error) { window->pushGui(new GuiMsgBox(window, error.what())); }
+}
 
 GuiSaveState::GuiSaveState(Window* window, FileData* game, const std::function<void(SaveState* state)>& callback) :
 	GuiComponent(window), mGrid(nullptr), mBackground(window, ":/frame.png"),
@@ -32,7 +72,7 @@ GuiSaveState::GuiSaveState(Window* window, FileData* game, const std::function<v
 	mTitle = std::make_shared<TextComponent>(mWindow, _("SAVESTATE MANAGER"), theme->Title.font, theme->Title.color, ALIGN_CENTER);
 	if (FamilyProfiles::enabled())
 	{
-		try { mTitle->setText(_("SAVES") + std::string(" — ") + FamilyProfiles::require("").name); }
+		try { mTitle->setText(std::string("OTHER SAVES · SETTINGS: ") + FamilyProfiles::require("").name); }
 		catch (const std::exception& error) { mTitle->setText(error.what()); }
 	}
 	mLayout.setEntry(mTitle, Vector2i(1, 1), false, true);
@@ -130,7 +170,7 @@ void GuiSaveState::loadGrid()
 
 	mGrid->add(_("START NEW GAME"), ":/freeslot.svg", SaveStateItem(mRepository->getDefaultNewGameSaveState()));
 	for (const auto& state : mRepository->getProfileLaunchStates())
-		mGrid->add(state->profileName + "\r\n" + _("IN-GAME SAVES"), ":/freeslot.svg", SaveStateItem(state.get()), state->profileColor);
+		mGrid->add(state->profileName + "\r\n" + _("IN-GAME PROGRESS"), ":/freeslot.svg", SaveStateItem(state.get()), state->profileColor);
 
 	if (mRepository->supportsAutoSave() && mGame->getCurrentGameSetting("autosave") == "1")
 	{

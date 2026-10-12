@@ -1,3 +1,4 @@
+#include "FamilyPreferences.h"
 //EmulationStation, a graphical front-end for ROM browsing. Created by Alec "Aloshi" Lofquist.
 //http://www.aloshi.com
 
@@ -534,7 +535,16 @@ int main(int argc, char* argv[])
 	}
 
 	//start the logger
-	Log::init();	
+	Log::init();
+	try { FamilyPreferences::initialize(); }
+	catch (const std::exception& error) {
+		LOG(LogError) << "Could not open family profile: " << error.what();
+#ifdef WIN32
+		MessageBoxA(nullptr, error.what(), "Could not open RetroBat profile", MB_OK | MB_ICONERROR);
+#endif
+		Log::flush();
+		return 1;
+	}
 
 	LOG(LogInfo) << "EmulationStation - v" << PROGRAM_VERSION_STRING << ", built " << PROGRAM_BUILT_STRING;
 
@@ -609,6 +619,14 @@ int main(int argc, char* argv[])
 		window.pushGui(new GuiMsgBox(&window, errorMsg, _("QUIT"), [] { Utils::Platform::quitES(); }));
 	}
 
+	Settings::fileSaved = [&window] {
+		if (FamilyPreferences::restartRequested()) return;
+		try { FamilyPreferences::save(); }
+		catch (const std::exception& error) {
+			LOG(LogError) << "Family preferences: " << error.what();
+			window.pushGui(new GuiMsgBox(&window, std::string("Could not sync profile settings.\n") + error.what()));
+		}
+	};
 	SystemConf* systemConf = SystemConf::getInstance();
 
 #ifdef _ENABLE_KODI_
@@ -842,7 +860,8 @@ int main(int argc, char* argv[])
 			}
 		}
 
-		Renderer::swapBuffers();		
+		Renderer::swapBuffers();
+		FamilyPreferences::frontendReady();
 	}
 
 	if (Utils::Platform::isFastShutdown())
@@ -861,7 +880,10 @@ int main(int argc, char* argv[])
 		window.renderSplashScreen(_("SAVING METADATA. PLEASE WAIT..."));
 
 	MameNames::deinit();
-	ViewController::saveState();
+	if (!FamilyPreferences::restartRequested()) ViewController::saveState();
+	try { if (!FamilyPreferences::restartRequested()) FamilyPreferences::save(); }
+	catch (const std::exception& error) { LOG(LogError) << "Family preferences: " << error.what(); }
+	Settings::fileSaved = nullptr;
 	CollectionSystemManager::deinit();
 	SystemData::deleteSystems();
 	Scripting::exitScriptingEngine();
@@ -875,14 +897,28 @@ int main(int argc, char* argv[])
 	while (window.peekGui() != nullptr)
 		delete window.peekGui();
 
-	window.deinit();
+	// Keep the last transition frame visible until the replacement frontend is ready.
+	if (FamilyPreferences::restartRequested()) {
+		AudioManager::getInstance()->deinit();
+		InputManager::getInstance()->deinit();
+	}
+	else window.deinit();
 
 	Utils::Platform::processQuitMode();
 
 	LOG(LogInfo) << "EmulationStation cleanly shutting down.";
 
 	Log::flush();
+	try { FamilyPreferences::restartFrontend(); }
+	catch (const std::exception& error) {
+		LOG(LogError) << error.what();
+#ifdef WIN32
+		MessageBoxA(nullptr, error.what(), "Profile switch failed", MB_OK | MB_ICONERROR);
+#endif
+		window.deinit();
+		return 1;
+	}
+	if (FamilyPreferences::restartRequested()) window.deinit();
 
 	return 0;
 }
-

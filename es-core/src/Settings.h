@@ -6,6 +6,7 @@
 #include <string>
 #include <vector>
 #include <set>
+#include <functional>
 #include "utils/Delegate.h"
 
 // Non-cached settings macros
@@ -60,6 +61,9 @@ public:
 
 	void loadFile();
 	bool saveFile();
+	void resetSetting(const std::string& name);
+	static bool isPersistentSetting(const std::string& name);
+	static std::function<void()> fileSaved;
 
 	SettingType getSettingType(const std::string& name);
 	std::vector<std::string> getSettingsNames();

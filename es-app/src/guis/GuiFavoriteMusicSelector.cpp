@@ -30,6 +30,7 @@ GuiFavoriteMusicSelector::GuiFavoriteMusicSelector(Window* window) : GuiComponen
         }
     };
     if (!Paths::getUserMusicPath().empty()) scan(Paths::getUserMusicPath());
+    if (!Paths::getSharedUserMusicPath().empty() && Paths::getSharedUserMusicPath() != Paths::getUserMusicPath()) scan(Paths::getSharedUserMusicPath());
     if (!Paths::getMusicPath().empty()) scan(Paths::getMusicPath());
     std::sort(mFiles.begin(), mFiles.end(), [](auto& a, auto& b) { return a.second < b.second; });
     

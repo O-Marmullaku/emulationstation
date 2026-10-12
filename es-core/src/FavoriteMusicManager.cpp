@@ -1,4 +1,5 @@
 #include "FavoriteMusicManager.h"
+#include "ProfileMusicPaths.h"
 #include "Paths.h"
 #include "LocaleES.h"
 #include "utils/FileSystemUtil.h"
@@ -39,7 +40,7 @@ std::vector<std::pair<std::string, std::string>> FavoriteMusicManager::loadFavor
         size_t pos = line.find(';');
         if (pos != std::string::npos)
         {
-            std::string path = line.substr(0, pos);
+			std::string path = ProfileMusicPaths::decode(line.substr(0, pos), Paths::getUserMusicPath(), Paths::getSharedUserMusicPath(), Paths::getMusicPath());
             std::string name = line.substr(pos + 1);
             favorites.emplace_back(path, name);
         }
@@ -49,13 +50,14 @@ std::vector<std::pair<std::string, std::string>> FavoriteMusicManager::loadFavor
 
 bool FavoriteMusicManager::saveSongToFavorites(const std::string& path, const std::string& name, Window* window)
 {
+	const auto storedPath = Paths::getProfileConfigPath().empty() ? path : ProfileMusicPaths::encode(path, Paths::getUserMusicPath(), Paths::getSharedUserMusicPath(), Paths::getMusicPath());
     std::string favoritesFile = getFavoriteMusicFilePath();
     bool alreadyExists = false;
     std::ifstream infile(favoritesFile);
     std::string line;
     while (std::getline(infile, line))
     {
-        if (line == path + ";" + name)
+        if (line == storedPath + ";" + name || line == path + ";" + name)
         {
             alreadyExists = true;
             break;
@@ -74,7 +76,7 @@ bool FavoriteMusicManager::saveSongToFavorites(const std::string& path, const st
         return false;
     }
 
-    ofs << path << ";" << name << "\n";
+    ofs << storedPath << ";" << name << "\n";
     ofs.close();
 
     return true;
@@ -82,6 +84,7 @@ bool FavoriteMusicManager::saveSongToFavorites(const std::string& path, const st
 
 bool FavoriteMusicManager::removeSongFromFavorites(const std::string& path, const std::string& name, Window* window)
 {
+	const auto storedPath = Paths::getProfileConfigPath().empty() ? path : ProfileMusicPaths::encode(path, Paths::getUserMusicPath(), Paths::getSharedUserMusicPath(), Paths::getMusicPath());
     std::string favoritesFile = getFavoriteMusicFilePath();
     if (!Utils::FileSystem::exists(favoritesFile))
         return false;
@@ -90,7 +93,7 @@ bool FavoriteMusicManager::removeSongFromFavorites(const std::string& path, cons
     bool found = false;
     for (auto it = lines.begin(); it != lines.end(); ++it)
     {
-        if (*it == path + ";" + name)
+        if (*it == storedPath + ";" + name || *it == path + ";" + name)
         {
             lines.erase(it);
             found = true;

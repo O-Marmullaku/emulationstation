@@ -1,4 +1,5 @@
 #include "FamilyProfiles.h"
+#include "FamilyPreferences.h"
 #include "FileData.h"
 
 #include "utils/FileSystemUtil.h"
@@ -707,8 +708,11 @@ bool FileData::launchGame(Window* window, LaunchGameOptions options)
 	{
 		try
 		{
+			FamilyPreferences::save();
+			Settings::getInstance()->saveFile();
 			owner = FamilyProfiles::require(options.saveStateInfo ? options.saveStateInfo->profileId : "");
 			familySession = std::make_unique<FamilyProfiles::Session>(owner.id);
+			LOG(LogInfo) << "Family launch: settings=" << FamilyProfiles::currentId() << ", save owner=" << owner.id;
 		}
 		catch (const std::exception& error)
 		{
@@ -719,6 +723,7 @@ bool FileData::launchGame(Window* window, LaunchGameOptions options)
 	std::string command = getlaunchCommand(options);
 	if (!command.empty() && familySession)
 	{
+		command += " -familyconfig \"" + Paths::getProfileConfigPath() + "\" -familykeys \"" + getKeyboardMappingFilePath() + "\"";
 		command += " -saves \"" + owner.root + "\"";
 		if (system->getName() == "ps2")
 			command += " -bios \"" + Utils::FileSystem::combine(owner.root, "bios") + "\"";
@@ -1683,6 +1688,17 @@ void FileData::checkCheevosHash(bool force)
 
 std::string FileData::getKeyboardMappingFilePath()
 {
+	if (!Paths::getProfileConfigPath().empty())
+	{
+		namespace fs = std::filesystem;
+		auto source = getSourceFileData();
+		auto relative = fs::u8path(source->getPath()).lexically_relative(fs::u8path(source->getSystem()->getStartPath()));
+		if (relative.empty() || relative.is_absolute() || *relative.begin() == "..")
+			relative = fs::u8path(Utils::FileSystem::getFileName(source->getPath()));
+		auto path = fs::u8path(Paths::getProfileConfigPath()) / "padtokey" / "games" / fs::u8path(source->getSystem()->getName()) / relative;
+		path += ".keys";
+		return FamilyProfiles::detail::pathUtf8(path);
+	}
 	if (Utils::FileSystem::isDirectory(getSourceFileData()->getPath()))
 		return getSourceFileData()->getPath() + "/padto.keys";
 
@@ -1694,6 +1710,7 @@ bool FileData::hasP2kFile()
 	std::string p2kPath = getSourceFileData()->getPath() + ".p2k.cfg";
 	if (Utils::FileSystem::isDirectory(getSourceFileData()->getPath()))
 		p2kPath = getSourceFileData()->getPath() + "/.p2k.cfg";
+	if (!Paths::getProfileConfigPath().empty() && Utils::FileSystem::exists(getKeyboardMappingFilePath() + ".p2k.cfg")) p2kPath = getKeyboardMappingFilePath() + ".p2k.cfg";
 
 	return Utils::FileSystem::exists(p2kPath);
 }
@@ -1706,6 +1723,7 @@ void FileData::importP2k(const std::string& p2k)
 	std::string p2kPath = getSourceFileData()->getPath() + ".p2k.cfg";
 	if (Utils::FileSystem::isDirectory(getSourceFileData()->getPath()))
 		p2kPath = getSourceFileData()->getPath() + "/.p2k.cfg";
+	if (!Paths::getProfileConfigPath().empty()) { p2kPath = getKeyboardMappingFilePath() + ".p2k.cfg"; Utils::FileSystem::createDirectory(Utils::FileSystem::getParent(p2kPath)); }
 
 	Utils::FileSystem::writeAllText(p2kPath, p2k);
 
@@ -1719,6 +1737,7 @@ std::string FileData::convertP2kFile()
 	std::string p2kPath = getSourceFileData()->getPath() + ".p2k.cfg";
 	if (Utils::FileSystem::isDirectory(getSourceFileData()->getPath()))
 		p2kPath = getSourceFileData()->getPath() + "/.p2k.cfg";
+	if (!Paths::getProfileConfigPath().empty() && Utils::FileSystem::exists(getKeyboardMappingFilePath() + ".p2k.cfg")) p2kPath = getKeyboardMappingFilePath() + ".p2k.cfg";
 
 	if (!Utils::FileSystem::exists(p2kPath))
 		return "";
@@ -1763,7 +1782,12 @@ KeyMappingFile FileData::getKeyboardMapping()
 	if (Utils::FileSystem::exists(path))
 		ret = KeyMappingFile::load(path);
 	else
-		ret = getSystem()->getKeyboardMapping(); // if .keys file does not exist, take system config as predefined mapping
+	{
+		const auto source = getSourceFileData()->getPath();
+		const auto shared = source + (Utils::FileSystem::isDirectory(source) ? "/padto.keys" : ".keys");
+		if (!Paths::getProfileConfigPath().empty() && Utils::FileSystem::exists(shared)) ret = KeyMappingFile::load(shared);
+		else ret = getSystem()->getKeyboardMapping();
+	}
 
 	ret.path = path;
 	return ret;

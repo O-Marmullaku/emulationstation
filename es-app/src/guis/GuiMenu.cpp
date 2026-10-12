@@ -1,4 +1,6 @@
 #include "guis/GuiMenu.h"
+#include "FamilyPreferences.h"
+#include "FamilyProfiles.h"
 
 #include "components/OptionListComponent.h"
 #include "components/SliderComponent.h"
@@ -134,6 +136,32 @@ GuiMenu::GuiMenu(Window *window, bool animate) : GuiComponent(window), mMenu(win
 {
 	// MAIN MENU
 	bool isFullUI = !UIModeController::getInstance()->isUIModeKid() && !UIModeController::getInstance()->isUIModeKiosk();
+	if (FamilyProfiles::enabled())
+	{
+		std::string name;
+		try { name = FamilyProfiles::require("").name; } catch (...) { name = "UNAVAILABLE"; }
+		addEntry("SWITCH PROFILE — " + name, true, [this] {
+			try {
+				const auto profiles = FamilyProfiles::load();
+				auto picker = new GuiSettings(mWindow, "SWITCH PROFILE");
+				picker->setSave(false);
+				for (const auto& profile : profiles)
+				{
+					const bool current = profile.id == FamilyProfiles::currentId();
+					picker->addEntry(profile.name + (current ? " · CURRENT" : ""), false, [this, picker, profile] {
+                        try {
+                            ViewController::saveState();
+                            if (FamilyPreferences::switchTo(profile.id)) {
+                                mWindow->renderSplashScreen("SWITCHING PROFILE");
+                                Utils::Platform::quitES(Utils::Platform::QuitMode::RESTART);
+                            }
+                        } catch (const std::exception& error) { mWindow->pushGui(new GuiMsgBox(mWindow, error.what())); }
+					}, "", false, current);
+				}
+				mWindow->pushGui(picker);
+			} catch (const std::exception& error) { mWindow->pushGui(new GuiMsgBox(mWindow, error.what())); }
+		}, "iconControllers");
+	}
 
 	// KODI >
 	// GAMES SETTINGS >
@@ -4018,7 +4046,7 @@ void GuiMenu::openThemeConfiguration(Window* mWindow, GuiComponent* s, std::shar
 			}
 
 			Settings::getInstance()->saveFile();
-			std::string path = Paths::getUserEmulationStationPath() + "/themesettings/" + Settings::getInstance()->getString("ThemeSet") + ".cfg";
+			std::string path = Paths::getProfileConfigFile("themesettings/") + Settings::getInstance()->getString("ThemeSet") + ".cfg";
 			if (Utils::FileSystem::exists(path))
 				Utils::FileSystem::removeFile(path);
 		}
@@ -5675,7 +5703,7 @@ void GuiMenu::saveSubsetSettings()
 			fileData += system->getName() + ".gridSize=" + gridSizeOverride + "\r";
 	}
 
-	std::string path = Paths::getUserEmulationStationPath() + "/themesettings";
+	std::string path = Paths::getProfileConfigFile("themesettings");
 	if (!Utils::FileSystem::exists(path))
 		Utils::FileSystem::createDirectory(path);
 
@@ -5694,7 +5722,7 @@ void GuiMenu::saveSubsetSettings()
 
 void GuiMenu::loadSubsetSettings(const std::string themeName)
 {
-	std::string path = Paths::getUserEmulationStationPath() + "/themesettings";
+	std::string path = Paths::getProfileConfigFile("themesettings");
 	if (!Utils::FileSystem::exists(path))
 		Utils::FileSystem::createDirectory(path);
 

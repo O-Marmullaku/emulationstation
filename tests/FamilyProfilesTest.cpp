@@ -85,6 +85,8 @@ int main()
 
         {
             Session held("OSMAN");
+            Session independentPreferences("OSMAN", true);
+            mustThrow([] { Session secondPreferences("OSMAN", true); });
             mustThrow([] { Session second("OSMAN"); });
         }
         { Session released("OSMAN"); }
