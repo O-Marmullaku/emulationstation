@@ -42,6 +42,11 @@ class RefreshTest(unittest.TestCase):
             self.assertTrue((root/'family-tiles/surface.svg').is_file())
             self.assertTrue((root/'family-tiles/waves.svg').is_file())
             self.assertIn('#FFFFFF',(root/'family-tiles/ps2.svg').read_text())
+            splash=ET.parse(root/'splash.xml').getroot()
+            self.assertEqual(splash.find("view/text[@name='username']/text").text,'${settings.FamilyProfileName}')
+            self.assertEqual(splash.find("view/image[@name='progressbar']/size").text,'.2 .004')
+            self.assertIsNone(splash.find("view/image[@name='progressbar']").get('extra'))
+            self.assertIsNone(splash.find("view/image[@name='logo-splash']"))
 
 
 if __name__=='__main__':unittest.main()

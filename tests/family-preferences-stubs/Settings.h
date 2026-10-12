@@ -9,7 +9,7 @@
 enum class SettingType { Unknown, String, Int, Float, Bool };
 class Settings {
 public:
-    static bool isPersistentSetting(const std::string& name) { return name != "Windowed"; }
+    static bool isPersistentSetting(const std::string& name) { return name != "Windowed" && name != "FamilyProfileName"; }
     inline static std::function<void()> fileSaved;
     static Settings* getInstance() { static Settings instance; return &instance; }
     static void clear() { getInstance()->reset(); }

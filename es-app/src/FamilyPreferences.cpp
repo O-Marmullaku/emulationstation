@@ -196,6 +196,7 @@ void applyProfile(const std::string& id, bool establishBaseline)
     const StoreValues profile = FamilyPreferenceStore::read(getProfilePreferencesPath(id));
     const StoreValues effective = mergeBaselineAndProfile(baseline, profile);
     applyValues(effective);
+    Settings::getInstance()->setString("FamilyProfileName", FamilyProfiles::require(id).name);
     s_baseline = std::move(baseline);
     s_applied = captureCurrent();
 }

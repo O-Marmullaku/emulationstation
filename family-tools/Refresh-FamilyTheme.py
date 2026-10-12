@@ -195,6 +195,27 @@ def refresh(theme):
         props(v,'image','family-hardware',visible='false')
         props(v,'video','family-hardware-video',path='./family-hardware/'+playlist.name,pos='0.025 0.57',size='0.285 0.30',zIndex='75')
     write(theme/'family-console-screen.xml',root)
+    splash_path=theme/'splash.xml'
+    splash_backup=theme/'splash-before-family.xml'
+    if splash_path.exists() and not splash_backup.exists():
+        splash_backup.write_bytes(splash_path.read_bytes())
+    splash=ET.Element('theme')
+    ET.SubElement(splash,'formatVersion').text='7'
+    ET.SubElement(splash,'include').text='./theme.xml'
+    loading=ET.SubElement(splash,'view',name='splash')
+    props(loading,'splash','splash',backgroundColor='${family.bg}')
+    props(loading,'image','background',path='./family-tiles/${family.skin}/waves.svg',pos='0 0',size='1 1',origin='0 0',color='FFFFFF')
+    avatar=props(loading,'image','avatar',path='./_theme_options/avatars/${image.avatar}',pos='.5 .41',maxSize='.075 .12',origin='.5 .5',roundCorners='.5',zIndex='10')
+    ET.SubElement(avatar,'path',ifSubset='system-avatar:custom').text='./custom-avatar.png'
+    ET.SubElement(avatar,'path',ifSubset='system-avatar:angry_cat').text='./family-avatars/angry_cat.png'
+    props(loading,'text','username',text='${settings.FamilyProfileName}',pos='.3 .49',size='.4 .05',fontPath='./_theme_inc/fonts/SST Bold.ttf',fontSize='.030',color='FFFFFF',alignment='center',zIndex='10')
+    props(loading,'text','label',visible='false')
+    props(loading,'image','progressbar',pos='.4 .575',size='.2 .004',origin='0 0',color='${family.panel}',colorEnd='${family.panel}')
+    props(loading,'image','progressbar:active',color='${family.accent}',colorEnd='${family.accent}')
+    for node in loading:
+        if node.get('name') not in ('avatar','username'):
+            node.attrib.pop('extra',None)
+    write(splash_path,splash)
     for include in list(main.findall('include')):
         if include.text=='./family-console-screen.xml':main.remove(include)
     ET.SubElement(main,'include').text='./family-console-screen.xml'

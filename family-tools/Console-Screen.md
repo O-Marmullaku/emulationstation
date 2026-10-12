@@ -8,6 +8,8 @@ The lower screen contains a console hardware image, a short information panel an
 
 The compact header shows a framed avatar and bold signed-in profile name, a centered capsule with controller/game-count and clock/playtime pairs, and only the clock on the right. Decorative frontend badges and fixed friend/trophy counters are hidden. Console tiles use landscape proportions, a soft selected edge, and gradient surfaces; the footer keeps the controller hints at a smaller size.
 
+Startup uses the same palette background and ribbons, the active avatar/name, and a thin native progress bar. The refresh script preserves the former splash once as `splash-before-family.xml`. `FamilyProfileName` is a runtime-only setting populated when profile preferences are applied, so the startup theme can read it before console metadata exists. Welcome/version/region text and the frontend logo are omitted.
+
 The avatar remains a profile preference (`subset.system-avatar`). The `angry_cat` choice reads the installation-local `family-avatars/angry_cat.png`, copied from the owner's ChubbyCats sticker. It is selected for Osman in his preferences, with no username condition in the theme. Other profiles retain their own avatar choices. The sticker is not distributed in this source repository. Osman also has `audio.display_titles=false` to keep song notifications from covering the header; background music remains enabled.
 
 ## Hardware footage

@@ -63,6 +63,7 @@ try {
     settings->addInt(gameKey, 2);
     settings->addBool(controllerKey, false);
     FamilyPreferences::initialize();
+    check(Settings::getInstance()->getString("FamilyProfileName") == "Player A", "startup theme gets active profile name");
     check(fs::exists(root / "family" / "A" / "music" / "favorites.m3u"), "first-use profile did not seed favorites from system music when no custom user music path exists");
 
     settings->setString("global.language", "fr");
@@ -83,6 +84,7 @@ try {
     check(storedA.find("Windowed") == storedA.end(), "transient command-line option was persisted");
 
     check(FamilyPreferences::switchTo("B"), "switch must request frontend restart");
+    check(Settings::getInstance()->getString("FamilyProfileName") == "Player B", "startup theme name follows profile switch");
     check(settings->getString("ThemeSet") == "classic", "theme leaked from A into B");
     check(FamilyProfiles::currentId() == "B", "switch did not update profile environment");
     check(settings->getString("global.language") == "en", "B did not receive baseline preference");

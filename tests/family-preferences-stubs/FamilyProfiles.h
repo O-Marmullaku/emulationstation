@@ -9,7 +9,7 @@
 #endif
 
 namespace FamilyProfiles {
-struct Profile { std::string id; std::string root; };
+struct Profile { std::string id; std::string root; std::string name; };
 inline std::string& lastSessionId() { static std::string value; return value; }
 inline bool& lastSessionWasPreferences() { static bool value = false; return value; }
 inline std::string environment(const char* name)
@@ -29,7 +29,7 @@ inline Profile require(const std::string& id)
 {
     if (id != "A" && id != "B") throw std::runtime_error("unknown test profile");
     const auto root = environment("RETROBAT_FAMILY_ROOT");
-    return {id, (std::filesystem::u8path(root) / id).u8string()};
+    return {id, (std::filesystem::u8path(root) / id).u8string(), "Player " + id};
 }
 class Session {
 public:
