@@ -74,6 +74,13 @@ def refresh(theme):
     ET.SubElement(focus,'path',d='M20 338H420V404Q420 420 404 420H36Q20 420 20 404Z',fill='#303030')
     write(tiles/'focus.svg',focus)
     (tiles/'footer.svg').write_text('<svg xmlns="http://www.w3.org/2000/svg" width="1920" height="100" viewBox="0 0 1920 100"><rect x="1" y="1" width="1918" height="98" rx="16" fill="#101010" stroke="#404040"/></svg>',encoding='utf-8')
+    (tiles/'header.svg').write_text('''<svg xmlns="http://www.w3.org/2000/svg" width="1920" height="100" viewBox="0 0 1920 100">
+<rect width="1920" height="99" fill="#FFFFFF" opacity=".025"/><path d="M0 99H1920" stroke="#FFFFFF" opacity=".20"/>
+<circle cx="75" cy="50" r="33" fill="#101010" stroke="#FFFFFF" stroke-width="1.5"/>
+<rect x="695" y="18" width="530" height="63" rx="32" fill="#080808" opacity=".72"/>
+<path d="M934 34V64" stroke="#FFFFFF" opacity=".7"/>
+<g transform="translate(743 35)" fill="none" stroke="#FFFFFF" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M7 2H29Q34 2 36 9L40 25Q40 30 35 28L27 20H10L3 28Q-2 30-1 24L2 9Q3 2 7 2Z"/><path d="M10 8V17M6 12H14"/><circle cx="28" cy="9" r="1"/><circle cx="32" cy="14" r="1"/></g>
+<g transform="translate(991 50)" fill="none" stroke="#FFFFFF" stroke-width="3"><circle r="14"/><path d="M0-9V0H7"/></g></svg>''',encoding='utf-8')
     logos = theme / '_theme_inc/images/logos'
     # Prefer the theme's white marks, otherwise normalize its regular vector.
     for source in sorted(logos.glob('*.svg')):
@@ -112,8 +119,9 @@ def refresh(theme):
         props(common,'image',name,visible='false')
     for name in ('friends','trophy-level','systemInfoEx','systemInfoEx2'):
         props(common,'text',name,visible='false')
-    props(common,'image','avatar',pos='0.031 0.027',maxSize='0.033 0.052',origin='0 0',color='FFFFFF')
-    props(common,'text','username',text='${family.profile.name}',pos='0.073 0.037',size='0.22 0.034',fontSize='.025',fontPath='./_theme_inc/fonts/SST Roman.ttf',glowSize='0')
+    props(common,'image','family-header',path='./family-tiles/header.svg',pos='0 0',size='1 .0926',color='${family.accent}',zIndex='95')
+    props(common,'image','avatar',pos='0.024 0.019',maxSize='0.030 0.054',origin='0 0',color='FFFFFF',roundCorners='.5',zIndex='99')
+    props(common,'text','username',text='${family.profile.name}',pos='0.076 0.035',size='0.22 0.036',fontSize='.025',fontPath='./_theme_inc/fonts/SST Bold.ttf',glowSize='0')
     avatar = ET.SubElement(root,'view',name='system,detailed,basic,grid',ifSubset='system-avatar:angry_cat')
     props(avatar,'image','avatar',path='./family-avatars/angry_cat.png')
     subset = main.find("subset[@name='system-avatar']")
@@ -148,7 +156,10 @@ def refresh(theme):
     props(view,'image','family-hardware',path='./_theme_inc/images/consoles/${system.theme}.png',pos='0.020 0.55',maxSize='0.305 0.31',origin='0 0',zIndex='75')
     def text(name, content, pos, size, font=.025, color='EDF0F5'):
         props(view,'text',name,text=content,pos=pos,size=size,fontPath='./_theme_inc/fonts/SST Roman.ttf',fontSize=font,color=color,alignment='left',verticalAlignment='top',zIndex='80',lineSpacing='1.15')
-    text('family-library','{binding:total} games   ·   {binding:gameTime} played','.32 .037','.50 .035',.023)
+    text('family-library','{binding:total} games','.414 .035','.071 .036',.023)
+    text('family-header-playtime','{binding:gameTime} played','.536 .035','.101 .036',.023)
+    for name in ('family-library','family-header-playtime'):
+        view.find(f"text[@name='{name}']/zIndex").text='100'
     text('family-subtitle','${system.manufacturer} · ${system.releaseYear}','.349 .505','.5 .038',.029,'${family.accent}')
     text('family-story-title','${system.fullName}','0.367 0.579','0.26 0.04',.028,'${family.accent}')
     text('family-story','${system.manufacturer}\nFirst released: ${system.releaseYear}','0.367 0.637','0.26 0.11',.024)
@@ -188,7 +199,7 @@ def refresh(theme):
         if include.text=='./family-console-screen.xml':main.remove(include)
     ET.SubElement(main,'include').text='./family-console-screen.xml'
     write(main_path,main)
-    return len([p for p in tiles.glob('*.svg') if p.name not in ('surface.svg','waves.svg','focus.svg','footer.svg','ps-mark.svg')])
+    return len([p for p in tiles.glob('*.svg') if p.name not in ('surface.svg','waves.svg','focus.svg','footer.svg','header.svg','ps-mark.svg')])
 
 
 if __name__=='__main__':
