@@ -1,6 +1,7 @@
 """Import an existing local PlayStation-X installation without redistributing its music."""
 import argparse
 import json
+import runpy
 import shutil
 import uuid
 from pathlib import Path
@@ -84,6 +85,7 @@ def customize(theme):
         frame = ET.SubElement(system, "image", name="marco-activo", extra="static")
         ET.SubElement(frame, "color").text = tint
     write_xml(theme / "family-palette.xml", overlay)
+    runpy.run_path(str(Path(__file__).with_name("Refresh-FamilyTheme.py")))["refresh"](theme)
 
 
 def migrate(old, new, blue, pink, black):
