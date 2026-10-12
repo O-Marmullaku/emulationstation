@@ -9,6 +9,52 @@ param(
 $ErrorActionPreference = 'Stop'
 . (Join-Path $PSScriptRoot 'Family.Common.ps1')
 
+function Get-FamilyProcessRecord {
+    param([Parameter(Mandatory)]$Process)
+
+    $creationDate = $Process.CreationDate
+    if ($creationDate -isnot [datetime]) {
+        $creationDate = [System.Management.ManagementDateTimeConverter]::ToDateTime([string]$creationDate)
+    }
+    [pscustomobject]@{
+        ProcessId = [int]$Process.ProcessId
+        ParentProcessId = [int]$Process.ParentProcessId
+        CreationTicks = [long]$creationDate.ToUniversalTime().Ticks
+    }
+}
+
+function Update-FamilyProcessTree {
+    param(
+        [Parameter(Mandatory)][hashtable]$ActiveByPid,
+        [Parameter(Mandatory)][object[]]$Processes
+    )
+
+    $currentByPid = @{}
+    foreach ($process in $Processes) { $currentByPid[$process.ProcessId] = $process.CreationTicks }
+
+    foreach ($trackedPid in @($ActiveByPid.Keys)) {
+        if (-not $currentByPid.ContainsKey([int]$trackedPid) -or $currentByPid[[int]$trackedPid] -ne $ActiveByPid[[int]$trackedPid]) {
+            [void]$ActiveByPid.Remove([int]$trackedPid)
+        }
+    }
+
+    # Resolve descendants to closure so grandchildren are followed even if listed before their parents.
+    $addedProcess = $true
+    while ($addedProcess) {
+        $addedProcess = $false
+        foreach ($process in $Processes) {
+            $parentPid = $process.ParentProcessId
+            if ($parentPid -eq $process.ProcessId -or -not $ActiveByPid.ContainsKey($parentPid)) { continue }
+            if (-not $ActiveByPid.ContainsKey($process.ProcessId)) {
+                $ActiveByPid[$process.ProcessId] = $process.CreationTicks
+                $addedProcess = $true
+            }
+        }
+    }
+
+    return $ActiveByPid.Count
+}
+
 if ($HostLocal) {
     $root = 'B:\GAMES_permanent\MiddleMan\RetroBat'
     $familyRoot = Join-Path $root 'saves\family'
@@ -85,15 +131,15 @@ try {
     }
     if (-not $frontend) { throw "RetroBat did not start the expected EmulationStation process within $StartupTimeoutSeconds seconds: $frontendFullPath (launcher PID $($launcher.Id))." }
 
-    # Follow this runtime's frontend process tree so the local config lock remains held during game sessions.
-    $activeIds = [System.Collections.Generic.HashSet[int]]::new()
-    [void]$activeIds.Add([int]$frontend.ProcessId)
+    # Track PID plus creation time. PIDs can be reused after an exited process.
+    $frontendIdentity = Get-FamilyProcessRecord $frontend
+    $activeByPid = @{}
+    $activeByPid[$frontendIdentity.ProcessId] = $frontendIdentity.CreationTicks
     do {
-        $processes = @(Get-CimInstance Win32_Process -ErrorAction Stop)
-        foreach ($process in $processes) { if ($activeIds.Contains([int]$process.ParentProcessId)) { [void]$activeIds.Add([int]$process.ProcessId) } }
-        $liveIds = @($processes | Where-Object { $activeIds.Contains([int]$_.ProcessId) } | ForEach-Object { [int]$_.ProcessId })
-        if ($liveIds.Count -gt 0) { Start-Sleep -Milliseconds 300 }
-    } while ($liveIds.Count -gt 0)
+        $processes = @(Get-CimInstance Win32_Process -ErrorAction Stop | ForEach-Object { Get-FamilyProcessRecord $_ })
+        [void](Update-FamilyProcessTree -ActiveByPid $activeByPid -Processes $processes)
+        if ($activeByPid.Count -gt 0) { Start-Sleep -Milliseconds 300 }
+    } while ($activeByPid.Count -gt 0)
 } finally {
     Remove-Item -LiteralPath Env:RETROBAT_FAMILY_ROOT -ErrorAction SilentlyContinue
     Remove-Item -LiteralPath Env:RETROBAT_PROFILE_ID -ErrorAction SilentlyContinue

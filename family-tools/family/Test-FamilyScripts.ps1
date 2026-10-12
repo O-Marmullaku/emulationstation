@@ -25,6 +25,35 @@ try {
     # Exercise the same direct ConvertFrom-Json assignment and profile lookup used by startup under Windows PowerShell 5.1.
     $startupPath = Join-Path $PSScriptRoot 'Start-FamilyRetroBat.ps1'
     if (-not [IO.File]::ReadAllText($startupPath).Contains('$profiles = Get-Content -LiteralPath $profilesPath -Raw | ConvertFrom-Json')) { throw 'Startup does not use direct ConvertFrom-Json assignment for profile lookup.' }
+    $startupTokens = $null; $startupErrors = $null
+    $startupAst = [System.Management.Automation.Language.Parser]::ParseFile($startupPath, [ref]$startupTokens, [ref]$startupErrors)
+    if ($startupErrors.Count) { throw "Startup PowerShell syntax error: $($startupErrors[0].Message)" }
+    foreach ($functionName in @('Get-FamilyProcessRecord', 'Update-FamilyProcessTree')) {
+        $functionAst = $startupAst.Find({ param($node) $node -is [System.Management.Automation.Language.FunctionDefinitionAst] -and $node.Name -eq $functionName }, $true) | Select-Object -First 1
+        if (-not $functionAst) { throw "Startup process tracking helper is missing: $functionName" }
+        Invoke-Expression $functionAst.Extent.Text
+    }
+    $identity = Get-FamilyProcessRecord ([pscustomobject]@{ ProcessId = 42; ParentProcessId = 0; CreationDate = [datetime]'2026-10-12T12:00:00Z' })
+    if ($identity.ProcessId -ne 42 -or $identity.CreationTicks -ne ([datetime]'2026-10-12T12:00:00Z').ToUniversalTime().Ticks) { throw 'Process identity did not include its creation time.' }
+    $activeTree = @{ 100 = [long]1000 }
+    $descendants = @(
+        [pscustomobject]@{ ProcessId = 300; ParentProcessId = 200; CreationTicks = [long]1000 },
+        [pscustomobject]@{ ProcessId = 100; ParentProcessId = 1; CreationTicks = [long]1000 },
+        [pscustomobject]@{ ProcessId = 200; ParentProcessId = 100; CreationTicks = [long]1000 }
+    )
+    if ((Update-FamilyProcessTree -ActiveByPid $activeTree -Processes $descendants) -ne 3) { throw 'Process tracking did not discover grandchildren independent of snapshot order.' }
+    $reusedPidTree = @{ 100 = [long]1000; 200 = [long]2000 }
+    $reusedPidSnapshot = @(
+        [pscustomobject]@{ ProcessId = 100; ParentProcessId = 1; CreationTicks = [long]1000 },
+        [pscustomobject]@{ ProcessId = 200; ParentProcessId = 999; CreationTicks = [long]9000 }
+    )
+    if ((Update-FamilyProcessTree -ActiveByPid $reusedPidTree -Processes $reusedPidSnapshot) -ne 1 -or $reusedPidTree.ContainsKey(200)) { throw 'An unrelated process reusing an exited PID remained tracked.' }
+    $reusedRootTree = @{ 100 = [long]1000 }
+    $reusedRootSnapshot = @(
+        [pscustomobject]@{ ProcessId = 100; ParentProcessId = 999; CreationTicks = [long]9000 },
+        [pscustomobject]@{ ProcessId = 300; ParentProcessId = 100; CreationTicks = [long]10000 }
+    )
+    if ((Update-FamilyProcessTree -ActiveByPid $reusedRootTree -Processes $reusedRootSnapshot) -ne 0) { throw 'A process descended from a reused root PID was incorrectly tracked.' }
     $multiRegistryPath = Join-Path $temp 'multi-profiles.json'
     [IO.File]::WriteAllText($multiRegistryPath, '[{"ClientId":"first-pc","DisplayName":"First","AccentColor":"#112233"},{"ClientId":"qa-blue","DisplayName":"QA Blue","AccentColor":"#445566"},{"ClientId":"third-pc","DisplayName":"Third","AccentColor":"#778899"}]', [Text.UTF8Encoding]::new($false))
     $multiProfilesPath = $multiRegistryPath
