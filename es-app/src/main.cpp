@@ -909,6 +909,7 @@ int main(int argc, char* argv[])
 	LOG(LogInfo) << "EmulationStation cleanly shutting down.";
 
 	Log::flush();
+	if (FamilyPreferences::restartRequested()) Log::close();
 	try { FamilyPreferences::restartFrontend(); }
 	catch (const std::exception& error) {
 		LOG(LogError) << error.what();

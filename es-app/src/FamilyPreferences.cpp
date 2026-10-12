@@ -32,7 +32,7 @@ bool s_restartRequested = false;
 std::string s_activeId;
 StoreValues s_baseline;
 StoreValues s_applied;
-std::string s_basePadtokey, s_baseMusic, s_baseFavoritesMusic;
+std::string s_basePadtokey, s_baseMusic, s_baseFavoritesMusic, s_baseSharedMusic;
 
 bool allowedKey(const std::string& name)
 {
@@ -189,7 +189,8 @@ void applyProfile(const std::string& id, bool establishBaseline)
 {
     FamilyProfiles::Session lock(id, true);
     FamilyProfileFiles::prepare(fs::u8path(FamilyProfiles::require(id).root), fs::u8path(Paths::getUserEmulationStationPath()),
-        fs::u8path(s_basePadtokey), fs::u8path(s_baseFavoritesMusic));
+        fs::u8path(s_basePadtokey), fs::u8path(s_baseFavoritesMusic), fs::u8path(s_baseSharedMusic),
+        fs::u8path(Paths::getMusicPath()));
     const StoreValues current = captureCurrent();
     StoreValues baseline = loadBaseline(establishBaseline, current);
     const StoreValues profile = FamilyPreferenceStore::read(getProfilePreferencesPath(id));
@@ -206,6 +207,7 @@ void initialize()
     s_basePadtokey = Paths::getUserKeyboardMappingsPath();
     s_baseMusic = Paths::getUserMusicPath();
     s_baseFavoritesMusic = s_baseMusic.empty() ? Paths::getMusicPath() : s_baseMusic;
+    s_baseSharedMusic = Paths::getSharedUserMusicPath();
     s_initialized = false;
     const std::string id = FamilyProfiles::currentId();
     if (id.empty()) throw std::runtime_error("Family profile mode requires RETROBAT_PROFILE_ID.");

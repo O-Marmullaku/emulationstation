@@ -1456,7 +1456,9 @@ void FolderData::createChildrenByFilenameMap(std::unordered_map<std::string, Fil
 const std::string FileData::getCore(bool resolveDefault)
 {
 #if WIN32 && !_DEBUG
-	std::string core = getMetadata(MetaDataId::Core);
+	const auto key = getConfigurationName() + ".core";
+	std::string core = FamilyProfiles::enabled() && Settings::getInstance()->getSettingType(key) != SettingType::Unknown
+		? Settings::getInstance()->getString(key) : getMetadata(MetaDataId::Core);
 #else
 	std::string core = SystemConf::getInstance()->get(getConfigurationName() + ".core");	
 #endif
@@ -1506,7 +1508,9 @@ const std::string FileData::getCore(bool resolveDefault)
 const std::string FileData::getEmulator(bool resolveDefault)
 {
 #if WIN32 && !_DEBUG
-	std::string emulator = getMetadata(MetaDataId::Emulator);
+	const auto key = getConfigurationName() + ".emulator";
+	std::string emulator = FamilyProfiles::enabled() && Settings::getInstance()->getSettingType(key) != SettingType::Unknown
+		? Settings::getInstance()->getString(key) : getMetadata(MetaDataId::Emulator);
 #else
 	std::string emulator = SystemConf::getInstance()->get(getConfigurationName() + ".emulator");
 #endif
@@ -1535,7 +1539,8 @@ const std::string FileData::getEmulator(bool resolveDefault)
 void FileData::setCore(const std::string value)
 {
 #if WIN32 && !_DEBUG
-	setMetadata(MetaDataId::Core, value == "auto" ? "" : value);
+	if (FamilyProfiles::enabled()) Settings::getInstance()->setString(getConfigurationName() + ".core", value);
+	else setMetadata(MetaDataId::Core, value == "auto" ? "" : value);
 #else
 	SystemConf::getInstance()->set(getConfigurationName() + ".core", value);
 #endif
@@ -1544,7 +1549,8 @@ void FileData::setCore(const std::string value)
 void FileData::setEmulator(const std::string value)
 {
 #if WIN32 && !_DEBUG
-	setMetadata(MetaDataId::Emulator, value == "auto" ? "" : value);
+	if (FamilyProfiles::enabled()) Settings::getInstance()->setString(getConfigurationName() + ".emulator", value);
+	else setMetadata(MetaDataId::Emulator, value == "auto" ? "" : value);
 #else
 	SystemConf::getInstance()->set(getConfigurationName() + ".emulator", value);
 #endif

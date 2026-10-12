@@ -8,6 +8,7 @@ class Paths {
 public:
     static std::string& getUserKeyboardMappingsPath() { static std::string value; return value; }
     static std::string& getUserMusicPath() { static std::string value; return value; }
+    static std::string& getSharedUserMusicPath() { static std::string value; return value; }
     static std::string& getMusicPath() { static std::string value; return value; }
     static std::string& getProfileConfigPath() { static std::string value; return value; }
     static std::string getUserEmulationStationPath()

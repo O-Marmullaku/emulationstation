@@ -1,9 +1,12 @@
 #pragma once
 
+#include "ProfileMusicPaths.h"
+
 #include <atomic>
 #include <cstdint>
 #include <filesystem>
 #include <fstream>
+#include <iterator>
 #include <stdexcept>
 #include <string>
 #include <system_error>
@@ -79,6 +82,78 @@ inline void copyFile(const fs::path& source, const fs::path& destination, std::u
         throw std::runtime_error("Family profile file changed while being copied: " + source.string());
 }
 
+inline fs::path makeStage(const fs::path& parent, const char* leaf);
+inline void removeStage(const fs::path& stage, const fs::path& parent, const char* leaf) noexcept;
+
+inline std::string normalizeFavorites(const std::string& content, const fs::path& profileMusic,
+    const fs::path& sharedMusic, const fs::path& systemMusic)
+{
+    const std::string profile = profileMusic.generic_u8string();
+    const std::string shared = sharedMusic.generic_u8string();
+    const std::string system = systemMusic.generic_u8string();
+    std::string result;
+    result.reserve(content.size());
+    for (std::size_t start = 0; start < content.size();) {
+        const std::size_t end = content.find('\n', start);
+        const std::size_t lineEnd = end == std::string::npos ? content.size() : end;
+        std::string line = content.substr(start, lineEnd - start);
+        const bool carriageReturn = !line.empty() && line.back() == '\r';
+        if (carriageReturn) line.pop_back();
+        const auto separator = line.find(';');
+        if (separator != std::string::npos) {
+            const std::string path = line.substr(0, separator);
+            if (fs::u8path(path).is_absolute())
+                line.replace(0, separator, ProfileMusicPaths::encode(path, profile, shared, system));
+        }
+        result += line;
+        if (carriageReturn) result += '\r';
+        if (end != std::string::npos) result += '\n';
+        start = end == std::string::npos ? content.size() : end + 1;
+    }
+    return result;
+}
+
+inline void normalizeFavoritesFile(const fs::path& file, const fs::path& profileMusic,
+    const fs::path& sharedMusic, const fs::path& systemMusic)
+{
+    if (!regularFile(file)) return;
+    std::error_code ec;
+    const auto size = fs::file_size(file, ec);
+    if (ec) throw fs::filesystem_error("Could not size favorites playlist", file, ec);
+    if (size > maxFileBytes) throw std::runtime_error("Favorites playlist exceeds its copy size limit.");
+    std::ifstream input(file, std::ios::binary);
+    if (!input) throw std::runtime_error("Could not read favorites playlist: " + file.string());
+    const std::string original((std::istreambuf_iterator<char>(input)), std::istreambuf_iterator<char>());
+    if (input.bad()) throw std::runtime_error("Could not read favorites playlist: " + file.string());
+    input.close();
+    const std::string normalized = normalizeFavorites(original, profileMusic, sharedMusic, systemMusic);
+    if (normalized.size() > maxFileBytes) throw std::runtime_error("Normalized favorites playlist exceeds its size limit.");
+    if (normalized == original) return;
+
+    const fs::path parent = file.parent_path();
+    const std::string filename = file.filename().string();
+    fs::path stage = makeStage(parent, filename.c_str());
+    try {
+        const fs::path temporary = stage / file.filename();
+        std::ofstream output(temporary, std::ios::binary | std::ios::trunc);
+        output.write(normalized.data(), static_cast<std::streamsize>(normalized.size()));
+        output.flush();
+        if (!output) throw std::runtime_error("Could not write normalized favorites playlist: " + temporary.string());
+        output.close();
+#ifdef _WIN32
+        if (!MoveFileExW(temporary.c_str(), file.c_str(), MOVEFILE_REPLACE_EXISTING | MOVEFILE_WRITE_THROUGH))
+            throw std::runtime_error("Could not replace favorites playlist (Windows error " + std::to_string(GetLastError()) + ").");
+#else
+        fs::rename(temporary, file, ec);
+        if (ec) throw fs::filesystem_error("Could not replace favorites playlist", temporary, file, ec);
+#endif
+        removeStage(stage, parent, filename.c_str());
+    } catch (...) {
+        removeStage(stage, parent, filename.c_str());
+        throw;
+    }
+}
+
 inline bool directFilename(const fs::path& entry, const char* extension)
 {
     const auto name = entry.filename();
@@ -132,7 +207,8 @@ inline void removeStage(const fs::path& stage, const fs::path& parent, const cha
 }
 
 inline bool prepareDirectory(const fs::path& profileRoot, const fs::path& sourceEs,
-    const fs::path& sourcePad, const fs::path& sourceMusic, const char* leaf)
+    const fs::path& sourcePad, const fs::path& sourceMusic, const fs::path& sharedMusic,
+    const fs::path& systemMusic, const char* leaf)
 {
     const fs::path destination = profileRoot / leaf;
     requireDirectory(profileRoot);
@@ -163,6 +239,7 @@ inline bool prepareDirectory(const fs::path& profileRoot, const fs::path& source
             }
         } else {
             copyFile(sourceMusic.empty() ? fs::path() : sourceMusic / "favorites.m3u", stage / "favorites.m3u", total);
+            normalizeFavoritesFile(stage / "favorites.m3u", profileRoot / "music", sharedMusic, systemMusic);
         }
 
         std::error_code ec;
@@ -194,19 +271,22 @@ inline void validateExistingConfig(const fs::path& config)
 
 // Call while holding the profile's exclusive session lock; seeding is deliberately one-shot.
 inline void prepare(const fs::path& profileRoot, const fs::path& baseEsHome,
-    const fs::path& basePadtokey, const fs::path& baseUserMusic)
+    const fs::path& basePadtokey, const fs::path& baseFavoritesMusic,
+    const fs::path& sharedMusic, const fs::path& systemMusic)
 {
     if (baseEsHome.empty()) throw std::runtime_error("The base EmulationStation config path is empty.");
     detail::requireDirectory(baseEsHome);
     detail::requireDirectory(basePadtokey);
-    detail::requireDirectory(baseUserMusic);
+    detail::requireDirectory(baseFavoritesMusic);
+    detail::requireDirectory(sharedMusic);
+    detail::requireDirectory(systemMusic);
     detail::requireDirectory(profileRoot);
     if (!fs::is_directory(detail::inspectPath(profileRoot))) fs::create_directories(profileRoot);
 
     const fs::path config = profileRoot / "config";
     const auto configStatus = detail::inspectPath(config);
     if (configStatus.type() == fs::file_type::not_found) {
-        detail::prepareDirectory(profileRoot, baseEsHome, basePadtokey, baseUserMusic, "config");
+        detail::prepareDirectory(profileRoot, baseEsHome, basePadtokey, baseFavoritesMusic, sharedMusic, systemMusic, "config");
     } else {
         if (!fs::is_directory(configStatus)) throw std::runtime_error("Expected a family profile config directory: " + config.string());
         detail::validateExistingConfig(config);
@@ -215,11 +295,12 @@ inline void prepare(const fs::path& profileRoot, const fs::path& baseEsHome,
     const fs::path music = profileRoot / "music";
     const auto musicStatus = detail::inspectPath(music);
     if (musicStatus.type() == fs::file_type::not_found) {
-        detail::prepareDirectory(profileRoot, baseEsHome, basePadtokey, baseUserMusic, "music");
+        detail::prepareDirectory(profileRoot, baseEsHome, basePadtokey, baseFavoritesMusic, sharedMusic, systemMusic, "music");
     } else {
         if (!fs::is_directory(musicStatus)) throw std::runtime_error("Expected a family profile music directory: " + music.string());
         std::uintmax_t total = 0;
         detail::accountFile(music / "favorites.m3u", total);
+        detail::normalizeFavoritesFile(music / "favorites.m3u", music, sharedMusic, systemMusic);
     }
 }
 } // namespace FamilyProfileFiles

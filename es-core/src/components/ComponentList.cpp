@@ -145,9 +145,11 @@ bool ComponentList::input(InputConfig* config, Input input)
 		return false;
 
 	// give it to the current row's input handler
-	if(mEntries.at(mCursor).data.input_handler)
+	// A row action may delete its menu, including the stored callback.
+	auto inputHandler = mEntries.at(mCursor).data.input_handler;
+	if(inputHandler)
 	{
-		if(mEntries.at(mCursor).data.input_handler(config, input))
+		if(inputHandler(config, input))
 			return true;
 	}else{
 		// no input handler assigned, do the default, which is to give it to the rightmost element in the row

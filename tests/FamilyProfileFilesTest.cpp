@@ -29,7 +29,8 @@ try {
     check(ProfileMusicPaths::decode("@shared/../secret", "S:/A/music", "S:/shared-user/music", "R:/music") == "@shared/../secret", "relative playlist path escaped shared music folder");
     const fs::path root = fs::current_path() / ("profile-files-test-" + std::to_string(std::chrono::steady_clock::now().time_since_epoch().count()));
 
-    const fs::path es = root / "base-es", pad = root / "base-pad", music = root / "base-music", profile = root / "profile-a";
+    const fs::path es = root / "base-es", pad = root / "base-pad", music = root / "base-music";
+    const fs::path systemMusic = root / "system-music", profile = root / "profile-a";
     write(es / "es_input.cfg", "input");
     write(es / "es_last_input.cfg", "last");
     write(es / "es_padtokey.cfg", "padtokey-config");
@@ -37,10 +38,11 @@ try {
     write(es / "themesettings" / "ignore.txt", "ignore");
     write(pad / "keyboard.keys", "keys");
     write(pad / "ignore.cfg", "ignore");
-    write(music / "favorites.m3u", "track.ogg;Track");
+    write(music / "favorites.m3u", "track.ogg;Track\n" + (music / "shared-track.ogg").generic_u8string() + ";Shared Track\n" +
+        (systemMusic / "system-track.ogg").generic_u8string() + ";System Track\nZ:/outside/other.ogg;External Track\nplain-line\n");
     write(music / "track.ogg", "audio");
 
-    FamilyProfileFiles::prepare(profile, es, pad, music);
+    FamilyProfileFiles::prepare(profile, es, pad, music, music, systemMusic);
     check(fs::exists(profile / "config" / "es_input.cfg"), "es_input was not seeded");
     check(fs::exists(profile / "config" / "es_last_input.cfg"), "es_last_input was not seeded");
     check(fs::exists(profile / "config" / "es_padtokey.cfg"), "es_padtokey was not seeded");
@@ -50,6 +52,22 @@ try {
     check(!fs::exists(profile / "config" / "padtokey" / "ignore.cfg"), "non-keys mapping was copied");
     check(fs::exists(profile / "music" / "favorites.m3u"), "favorites playlist was not seeded");
     check(!fs::exists(profile / "music" / "track.ogg"), "music content was copied");
+    {
+        std::ifstream input(profile / "music" / "favorites.m3u", std::ios::binary);
+        const std::string favorites((std::istreambuf_iterator<char>(input)), std::istreambuf_iterator<char>());
+        check(favorites.find("@shared/shared-track.ogg;Shared Track") != std::string::npos, "shared favorite was not made portable");
+        check(favorites.find("@system/system-track.ogg;System Track") != std::string::npos, "system favorite was not made portable");
+        check(favorites.find("Z:/outside/other.ogg;External Track") != std::string::npos, "external favorite was changed");
+        check(favorites.find("plain-line\n") != std::string::npos, "non-entry line was changed");
+    }
+
+    write(profile / "music" / "favorites.m3u", (music / "shared-track.ogg").generic_u8string() + ";Existing Shared\n");
+    FamilyProfileFiles::prepare(profile, es, pad, music, music, systemMusic);
+    {
+        std::ifstream input(profile / "music" / "favorites.m3u", std::ios::binary);
+        const std::string favorites((std::istreambuf_iterator<char>(input)), std::istreambuf_iterator<char>());
+        check(favorites == "@shared/shared-track.ogg;Existing Shared\n", "existing profile favorite was not normalized");
+    }
 
     fs::remove(profile / "config" / "es_input.cfg");
     fs::remove(profile / "config" / "themesettings" / "dark.cfg");
@@ -57,7 +75,7 @@ try {
     write(profile / "config" / "other.txt", "preserve");
     write(es / "es_input.cfg", "changed-base");
     write(es / "themesettings" / "dark.cfg", "changed-base");
-    FamilyProfileFiles::prepare(profile, es, pad, music);
+    FamilyProfileFiles::prepare(profile, es, pad, music, music, systemMusic);
     check(!fs::exists(profile / "config" / "es_input.cfg"), "deleted input config was resurrected");
     check(!fs::exists(profile / "config" / "themesettings" / "dark.cfg"), "deleted theme config was resurrected");
     check(!fs::exists(profile / "music" / "favorites.m3u"), "deleted favorites playlist was resurrected");
@@ -70,7 +88,7 @@ try {
     bool rejected = false;
     if (!symlinkError) {
         try {
-    FamilyProfileFiles::prepare(badProfile, badEs, pad, music); }
+    FamilyProfileFiles::prepare(badProfile, badEs, pad, music, music, systemMusic); }
         catch (const std::exception&) { rejected = true; }
         check(rejected, "symlink theme config was accepted");
         check(!fs::exists(badProfile / "config"), "failed seed promoted partial config directory");
@@ -85,7 +103,7 @@ try {
     }
     rejected = false;
     try {
-    FamilyProfileFiles::prepare(largeProfile, largeEs, pad, music); }
+    FamilyProfileFiles::prepare(largeProfile, largeEs, pad, music, music, systemMusic); }
     catch (const std::exception&) { rejected = true; }
     check(rejected, "oversized config file was accepted");
     check(!fs::exists(largeProfile / "config"), "oversized seed promoted partial config directory");
