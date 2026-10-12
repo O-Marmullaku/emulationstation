@@ -6,6 +6,10 @@ The screen uses the existing console SVG marks inside rounded gradient tiles, wi
 
 The lower screen contains a console hardware image, a short information panel and a stats panel. PS2 has curated copy; other systems show their existing manufacturer, release year, library count and scoped playtime. The old paragraph is hidden. Playtime still follows Personal / Everyone.
 
+The compact header shows the signed-in profile, scoped console playtime and game count, and clock. Decorative frontend badges and fixed friend/trophy counters are hidden. Console tiles use landscape proportions, a soft selected edge, and gradient surfaces; the footer keeps the controller hints at a smaller size.
+
+The avatar remains a profile preference (`subset.system-avatar`). The `angry_cat` choice reads the installation-local `family-avatars/angry_cat.png`, copied from the owner's ChubbyCats sticker. It is selected for Osman in his preferences, with no username condition in the theme. Other profiles retain their own avatar choices. The sticker is not distributed in this source repository. Osman also has `audio.display_titles=false` to keep song notifications from covering the header; background music remains enabled.
+
 ## Hardware footage
 
 The local theme only contains advertisements, not multi-angle console footage. Hardware PNGs are an honest fallback. To add actual hardware clips, place a UTF-8 `<system>.m3u` in `family-hardware/` inside the theme, referencing local clips relative to the playlist, then rerun the refresh script. Native `M3uPlaylist` shuffles the clips. No game-video randomizer or fake camera rotation is used.
