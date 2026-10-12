@@ -58,7 +58,7 @@ try {
     & $cmake -S $sourceRoot -B $buildRoot -G 'Visual Studio 17 2022' -A x64 -DRETROBAT=ON -DBUILD_FAMILY_TESTS=ON
     if ($LASTEXITCODE -ne 0) { throw "CMake configure failed ($LASTEXITCODE)." }
 
-    & $cmake --build $buildRoot --config Release --target emulationstation family_profiles_test family_preferences_test family_preferences_switch_test family_profile_files_test --parallel 16
+    & $cmake --build $buildRoot --config Release --target emulationstation family_profiles_test family_preferences_test family_preferences_switch_test family_profile_files_test family_usage_test --parallel 16
     if ($LASTEXITCODE -ne 0) { throw "Release build failed ($LASTEXITCODE)." }
 
     & $ctest --test-dir $buildRoot -C Release --output-on-failure

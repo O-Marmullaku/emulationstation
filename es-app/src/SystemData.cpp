@@ -1,4 +1,6 @@
 #include "SystemData.h"
+#include "FamilyProfiles.h"
+#include "FamilyUsage.h"
 
 #include "SystemConf.h"
 #include "utils/FileSystemUtil.h"
@@ -13,6 +15,7 @@
 #include "ThemeData.h"
 #include "views/UIModeController.h"
 #include <fstream>
+#include <limits>
 #include "Window.h"
 #include "LocaleES.h"
 #include "utils/StringUtil.h"
@@ -1512,6 +1515,24 @@ GameCountInfo* SystemData::getGameCountInfo()
 	int mostPlayCount = 0;
 	long gameTime = 0;
 	std::string mostCountPlayed;
+	const bool familyUsageEnabled = FamilyProfiles::enabled();
+	const std::string usageScope = Settings::getInstance()->getString("FamilyUsageScope");
+	const bool personalUsage = familyUsageEnabled && usageScope != "everyone";
+	std::string usageProfileId;
+	FamilyUsage::Snapshot familyUsage;
+	if (familyUsageEnabled)
+	{
+		try
+		{
+			const auto profile = FamilyProfiles::require("");
+			usageProfileId = profile.id;
+			familyUsage = FamilyUsage::load(FamilyUsage::detail::rootFromProfileRoot(profile.root));
+		}
+		catch (const std::exception& error)
+		{
+			LOG(LogError) << "Could not load family playtime totals: " << error.what();
+		}
+	}
 
 	for (auto game : games)
 	{
@@ -1534,10 +1555,20 @@ GameCountInfo* SystemData::getGameCountInfo()
 			}
 		}
 
-		long seconds = atol(game->getMetadata(MetaDataId::GameTime).c_str());
+		long legacySeconds = atol(game->getMetadata(MetaDataId::GameTime).c_str());
+		long seconds = legacySeconds;
+		if (familyUsageEnabled)
+		{
+			const auto source = game->getSourceFileData();
+			const auto sourceSystem = source ? source->getSystem() : nullptr;
+			const std::string key = sourceSystem ? FamilyUsage::gameKey(sourceSystem->getName(), source->getPath(), sourceSystem->getStartPath()) : std::string();
+			const auto selectedSeconds = familyUsage.displaySeconds(usageScope, usageProfileId, key, legacySeconds);
+			seconds = static_cast<long>(std::min<std::int64_t>(selectedSeconds, std::numeric_limits<long>::max()));
+		}
 		if (seconds > 0)
 		{
-			mGameCountInfo->playTime += seconds;
+			mGameCountInfo->playTime = seconds > std::numeric_limits<long>::max() - mGameCountInfo->playTime ?
+				std::numeric_limits<long>::max() : mGameCountInfo->playTime + seconds;
 			
 			if (seconds > gameTime)
 			{
@@ -1551,7 +1582,7 @@ GameCountInfo* SystemData::getGameCountInfo()
 			mGameCountInfo->lastPlayedDate = lastPlayed;
 	}
 
-	if (mGameCountInfo->mostPlayed.empty() && !mostCountPlayed.empty())
+	if (!personalUsage && mGameCountInfo->mostPlayed.empty() && !mostCountPlayed.empty())
 		mGameCountInfo->mostPlayed = mostCountPlayed;
 
 	return mGameCountInfo;
@@ -1587,6 +1618,18 @@ void SystemData::loadTheme()
 		std::map<std::string, std::string> sysData;
 
 		// Global variables
+		sysData["family.profile.name"] = "Player";
+		sysData["family.profile.color"] = "FFFFFF";
+		if (FamilyProfiles::enabled())
+		{
+			try
+			{
+				const auto profile = FamilyProfiles::require("");
+				sysData["family.profile.name"] = profile.name;
+				sysData["family.profile.color"] = Utils::String::format("%06X", profile.color >> 8);
+			}
+			catch (const std::exception& error) { LOG(LogWarning) << "Could not resolve family theme profile variables: " << error.what(); }
+		}
 		sysData["global.help"] = Settings::getInstance()->getBool("ShowHelpPrompts") ? "true" : "false";
 		sysData["global.clock"] = Settings::DrawClock() ? "true" : "false";
 		sysData["global.architecture"] = Utils::Platform::getArchString();
@@ -2285,9 +2328,11 @@ BindableProperty SystemData::getProperty(const std::string& name)
 	if (name == "mostPlayed")
 		return info->mostPlayed;
 
-	if (name == "gameTime" && info->playTime != 0)
+	if (name == "gameTime" && (info->playTime != 0 || FamilyProfiles::enabled()))
 	{
 		auto seconds = info->playTime;
+		if (seconds == 0)
+			return std::string("0m");
 
 		int d = 0, h = 0, m = 0, s = 0;
 		d = seconds / 86400;

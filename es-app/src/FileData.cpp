@@ -1,4 +1,5 @@
 #include "FamilyProfiles.h"
+#include "FamilyUsage.h"
 #include "FamilyPreferences.h"
 #include "FileData.h"
 
@@ -704,12 +705,19 @@ bool FileData::launchGame(Window* window, LaunchGameOptions options)
 
 	std::unique_ptr<FamilyProfiles::Session> familySession;
 	FamilyProfiles::Profile owner;
+	FamilyProfiles::Profile usageProfile;
+	std::string familyUsageRoot;
+	std::string familyGameKey;
 	if (FamilyProfiles::enabled())
 	{
 		try
 		{
 			FamilyPreferences::save();
 			Settings::getInstance()->saveFile();
+			usageProfile = FamilyProfiles::require("");
+			familyUsageRoot = FamilyUsage::detail::rootFromProfileRoot(usageProfile.root);
+			familyGameKey = FamilyUsage::gameKey(system->getName(), gameToUpdate->getPath(), system->getStartPath());
+			FamilyUsage::ensureBaseline(familyUsageRoot, familyGameKey, gameToUpdate->getMetadata().getInt(MetaDataId::GameTime));
 			owner = FamilyProfiles::require(options.saveStateInfo ? options.saveStateInfo->profileId : "");
 			familySession = std::make_unique<FamilyProfiles::Session>(owner.id);
 			LOG(LogInfo) << "Family launch: settings=" << FamilyProfiles::currentId() << ", save owner=" << owner.id;
@@ -808,7 +816,14 @@ bool FileData::launchGame(Window* window, LaunchGameOptions options)
 		long elapsedSeconds = difftime(tend, tstart);
 		long gameTime = gameToUpdate->getMetadata().getInt(MetaDataId::GameTime) + elapsedSeconds;
 		if (elapsedSeconds >= 10)
+		{
 			gameToUpdate->setMetadata(MetaDataId::GameTime, std::to_string(static_cast<long>(gameTime)));
+			if (familySession)
+			{
+				try { FamilyUsage::addPlayTime(familyUsageRoot, usageProfile.id, familyGameKey, elapsedSeconds); }
+				catch (const std::exception& error) { LOG(LogError) << "Could not record family playtime: " << error.what(); }
+			}
+		}
 
 		//update last played time
 		gameToUpdate->setMetadata(MetaDataId::LastPlayed, Utils::Time::DateTime(Utils::Time::now()));

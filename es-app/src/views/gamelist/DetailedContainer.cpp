@@ -3,6 +3,7 @@
 #include "animations/LambdaAnimation.h"
 #include "views/ViewController.h"
 #include "FileData.h"
+#include "FamilyUsage.h"
 #include "SystemData.h"
 #include "LocaleES.h"
 #include "LangParser.h"
@@ -1042,7 +1043,7 @@ void DetailedContainer::updateControls(FileData* file, bool isClearing, int move
 		{
 			mLastPlayed.setValue(file->getMetadata(MetaDataId::LastPlayed));
 			mPlayCount.setValue(file->getMetadata(MetaDataId::PlayCount));
-			mGameTime.setValue(Utils::Time::secondsToString(atol(file->getMetadata(MetaDataId::GameTime).c_str())));
+			mGameTime.setValue(Utils::Time::secondsToString(FamilyUsage::displaySeconds(file, atol(file->getMetadata(MetaDataId::GameTime).c_str()))));
 		}
 		else if (file->getType() == FOLDER)
 			updateDetailsForFolder((FolderData*)file);

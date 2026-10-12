@@ -1,5 +1,6 @@
 #include <Settings.h>
 #include "FileSorts.h"
+#include "FamilyUsage.h"
 
 #include "utils/StringUtil.h"
 #include "LocaleES.h"
@@ -127,7 +128,8 @@ namespace FileSorts
 	{
 		//only games have playcount metadata
 		if (file1->getMetadata().getType() == GAME_METADATA && file2->getMetadata().getType() == GAME_METADATA)
-			return (file1)->getMetadata().getInt(MetaDataId::GameTime) < (file2)->getMetadata().getInt(MetaDataId::GameTime);
+			return FamilyUsage::displaySeconds(file1, file1->getMetadata().getInt(MetaDataId::GameTime)) <
+				FamilyUsage::displaySeconds(file2, file2->getMetadata().getInt(MetaDataId::GameTime));
 
 		return false;
 	}

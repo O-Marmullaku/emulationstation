@@ -143,6 +143,7 @@ set(ES_HEADERS
 
 set(ES_SOURCES
     ${CMAKE_CURRENT_SOURCE_DIR}/src/FileData.cpp
+	${CMAKE_CURRENT_SOURCE_DIR}/src/FamilyUsage.cpp
 	${CMAKE_CURRENT_SOURCE_DIR}/src/FileTag.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/src/FileSorts.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/src/main.cpp

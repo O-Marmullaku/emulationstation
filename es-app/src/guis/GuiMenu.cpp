@@ -1,6 +1,7 @@
 #include "guis/GuiMenu.h"
 #include "FamilyPreferences.h"
 #include "FamilyProfiles.h"
+#include "Settings.h"
 
 #include "components/OptionListComponent.h"
 #include "components/SliderComponent.h"
@@ -161,6 +162,21 @@ GuiMenu::GuiMenu(Window *window, bool animate) : GuiComponent(window), mMenu(win
 				mWindow->pushGui(picker);
 			} catch (const std::exception& error) { mWindow->pushGui(new GuiMsgBox(mWindow, error.what())); }
 		}, "iconControllers");
+
+		addEntry(_("PLAYTIME DISPLAY"), true, [this] {
+			auto settings = new GuiSettings(mWindow, _("PLAYTIME DISPLAY"));
+			auto scope = std::make_shared<OptionListComponent<std::string>>(mWindow, _("PLAYTIME DISPLAY"), false);
+			scope->addRange({ { _("PERSONAL"), "personal" }, { _("EVERYONE"), "everyone" } }, Settings::getInstance()->getString("FamilyUsageScope"));
+			settings->addWithDescription(_("PLAYTIME DISPLAY"), _("Choose whose playtime appears in statistics and game details."), scope);
+			settings->addSaveFunc([scope] {
+				if (Settings::getInstance()->setString("FamilyUsageScope", scope->getSelected()))
+				{
+					for (auto system : SystemData::sSystemVector) system->updateDisplayedGameCount();
+					if (ViewController::hasInstance()) ViewController::get()->reloadAll(nullptr, false);
+				}
+			});
+			mWindow->pushGui(settings);
+		});
 	}
 
 	// KODI >
@@ -898,7 +914,7 @@ void GuiMenu::openDeveloperSettings()
 		}, _("NO"), nullptr));
 	});
 
-	s->addWithDescription(_("RESET GAMELISTS USAGE DATA"), _("Reset values of GameTime, PlayCount and LastPlayed metadata."), nullptr, [this, s]
+	s->addWithDescription(_("RESET GAMELISTS USAGE DATA"), _("Reset legacy gamelist usage metadata. Family-profile playtime history is kept."), nullptr, [this, s]
 		{
 			mWindow->pushGui(new GuiMsgBox(mWindow, _("ARE YOU SURE?"), _("YES"), [&]
 				{

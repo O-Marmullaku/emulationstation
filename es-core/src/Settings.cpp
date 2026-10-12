@@ -146,6 +146,7 @@ void Settings::setDefaults()
 	mBoolMap["StartupOnGameList"] = false;
 	mStringMap["StartupSystem"] = "lastsystem";
 	mStringMap["ShowTags"] = "";
+	mStringMap["FamilyUsageScope"] = "personal";
 	mBoolMap["UseFileCache"] = true;
 
 #if WIN32

@@ -1,6 +1,7 @@
 #include "GameNameFormatter.h"
 #include "SystemData.h"
 #include "FileData.h"
+#include "FamilyUsage.h"
 #include "FileSorts.h"
 #include "Settings.h"
 #include "utils/StringUtil.h"
@@ -168,7 +169,7 @@ std::string GameNameFormatter::getDisplayName(FileData* fd, bool showFolderIcon,
 
 	if (mShowGameTime)
 	{
-		int seconds = atol(fd->getMetadata(MetaDataId::GameTime).c_str());
+		int seconds = static_cast<int>(FamilyUsage::displaySeconds(fd, atol(fd->getMetadata(MetaDataId::GameTime).c_str())));
 		if (seconds > 0)
 		{
 			int h = 0, m = 0, s = 0;
