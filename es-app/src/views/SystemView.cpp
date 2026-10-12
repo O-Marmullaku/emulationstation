@@ -647,6 +647,12 @@ void SystemView::onCursorChanged(const CursorState& state)
 	if (mCarousel.size() == 0)
 		return;
 
+	if (auto carousel = mCarousel.asCarousel())
+	{
+		auto element = getSelected()->getTheme()->getElement("system", "systemcarousel", "carousel");
+		carousel->setLogoPath(element && element->has("logoPath") ? element->get<std::string>("logoPath") : "");
+	}
+
 	int mCursor = mCarousel.getCursorIndex();
 
 	if (AudioManager::isInitialized())

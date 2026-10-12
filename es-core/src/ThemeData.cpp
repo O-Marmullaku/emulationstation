@@ -556,6 +556,7 @@ std::map<std::string, std::map<std::string, ThemeData::ElementPropertyType>> The
 		{ "showSnapshotDelay", BOOLEAN } } },
 
 	{ "carousel", {
+		{ "logoPath", PATH },
 		{ "type", STRING },					// horizontal, vertical, horizontal_wheel, vertical_wheel
 		{ "size", NORMALIZED_PAIR },
 		{ "pos", NORMALIZED_PAIR },

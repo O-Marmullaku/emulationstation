@@ -27,6 +27,7 @@ class RefreshTest(unittest.TestCase):
                 self.assertIsNotNone(layout.find(f"variables/family.accent[@ifSubset='colorset:{palette}']"))
             self.assertEqual(layout.find("view/image[@name='background-art']/visible").text,'false')
             self.assertEqual(layout.find("view/video[@name='system_video']/visible").text,'false')
+            self.assertEqual(layout.find("view[@name='detailed,basic,grid']/video[@name='default_background']/visible").text,'false')
             self.assertEqual(layout.find("view/image[@name='logo']/path").text,'./family-tiles/${family.skin}/${system.theme}.svg')
             for palette, colors in module.SURFACES.items():
                 self.assertIn('#'+colors[0],(root/f'family-tiles/{palette}/ps2.svg').read_text())
@@ -47,6 +48,23 @@ class RefreshTest(unittest.TestCase):
             self.assertEqual(splash.find("view/image[@name='progressbar']/size").text,'.2 .004')
             self.assertIsNone(splash.find("view/image[@name='progressbar']").get('extra'))
             self.assertIsNone(splash.find("view/image[@name='logo-splash']"))
+            self.assertEqual(splash.find("view/image[@name='background']/path").text,'./family-tiles/neutral-splash.svg')
+            for style, names in module.CONSOLE_GROUPS.items():
+                matching = [v for v in layout.findall('view') if v.get('name')=='system' and v.get('if') == "{system.theme} == '" + names[0] + "'"]
+                self.assertEqual(len(matching),1)
+                self.assertEqual(matching[0].find("carousel/logoPath").text,f'./family-tiles/{style}/{{system:theme}}.svg')
+                self.assertEqual(matching[0].find("image[@name='family-story-card']/path").text,f'./family-tiles/{style}/surface.svg')
+                self.assertTrue((root/f'family-tiles/{style}/ps2.svg').exists())
+                ET.parse(root/f'family-tiles/{style}/waves.svg')
+                self.assertNotIn('<ns0:',(root/f'family-tiles/{style}/ps2.svg').read_text())
+                self.assertTrue((root/f'family-tiles/{style}/header.svg').exists())
+                self.assertIn('#17171E',(root/f'family-tiles/{style}/header.svg').read_text())
+            launch=ET.parse(root/'gamesplash.xml').getroot()
+            self.assertEqual(launch.find("view/image[@name='background']/path").text,'./family-tiles/launch/{game:system:theme}.svg')
+            self.assertEqual(launch.find("view/text[@name='label']/visible").text,'true')
+            self.assertEqual(launch.find("view/image[@name='launch-panel']/zIndex").text,'6')
+            self.assertEqual((root/'family-tiles/launch/ps2.svg').read_bytes(),(root/'family-tiles/blue/waves.svg').read_bytes())
+
 
 
 if __name__=='__main__':unittest.main()

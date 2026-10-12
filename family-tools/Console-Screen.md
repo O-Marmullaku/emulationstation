@@ -2,13 +2,13 @@
 
 `Import-PlayStationTheme.py` applies `Refresh-FamilyTheme.py` after importing the locally owned PlayStation-X theme. Run the latter against an existing installed theme to update only the shared console screen. Keep the two scripts together. Profile preferences, save ownership, input mappings and music are not changed.
 
-The screen uses the existing console SVG marks inside rounded gradient tiles, with framed info panels and illuminated background ribbons. Blue, pink and black palettes generate separate surface assets and lighter logo ink, avoiding washed-out multiplicative color tints. No profile-name tests are used. Original artwork and credits remain in the installation. The oversized system backdrop and advertising videos are hidden on the console screen. Game-list views are unchanged.
+The screen uses the existing console SVG marks inside rounded gradient tiles, with framed info panels and illuminated background ribbons. Blue, pink and black palettes generate separate surface assets and lighter logo ink, avoiding washed-out multiplicative color tints. No profile-name tests are used. Original artwork and credits remain in the installation. The oversized system backdrop and advertising videos are hidden on the console screen. Console-specific colors also cover headers, footers, game lists, grid tiles and menu controls. SNES uses soft gray/lavender, GameCube uses purple geometry, and Xbox 360 uses charcoal/silver with green seams. PlayStation retains blue; other consoles use a neutral fallback. Profile color remains on the avatar ring.
 
 The lower screen contains a console hardware image, a short information panel and a stats panel. PS2 has curated copy; other systems show their existing manufacturer, release year, library count and scoped playtime. The old paragraph is hidden. Playtime still follows Personal / Everyone.
 
 The compact header shows a framed avatar and bold signed-in profile name, a centered capsule with controller/game-count and clock/playtime pairs, and only the clock on the right. Decorative frontend badges and fixed friend/trophy counters are hidden. Console tiles use landscape proportions, a soft selected edge, and gradient surfaces; the footer keeps the controller hints at a smaller size.
 
-Startup uses the same palette background and ribbons, the active avatar/name, and a thin native progress bar. The refresh script preserves the former splash once as `splash-before-family.xml`. `FamilyProfileName` is a runtime-only setting populated when profile preferences are applied, so the startup theme can read it before console metadata exists. Welcome/version/region text and the frontend logo are omitted.
+Startup uses a neutral ambient background, the active avatar/name, and a thin native progress bar. Game launch uses the selected game system background, profile identity and game title. The refresh script preserves the former splash once as `splash-before-family.xml`. `FamilyProfileName` is a runtime-only setting populated when profile preferences are applied, so the startup theme can read it before console metadata exists. Welcome/version/region text and the frontend logo are omitted.
 
 The avatar remains a profile preference (`subset.system-avatar`). The `angry_cat` choice reads the installation-local `family-avatars/angry_cat.png`, copied from the owner's ChubbyCats sticker. It is selected for Osman in his preferences, with no username condition in the theme. Other profiles retain their own avatar choices. The sticker is not distributed in this source repository. Osman also has `audio.display_titles=false` to keep song notifications from covering the header; background music remains enabled.
 
@@ -30,3 +30,8 @@ No revenue, profit or manufacturing-cost figures are asserted. Those need defens
 `python -m unittest discover -s family-tools -p 'test_*theme.py'`
 
 Refresh tests cover repeatable installation, one final include, all three palette tokens, distinct element names, correct library-count binding, removal of old commercial/background layers, and normalized vector marks. A live frontend check is still needed after installation; static tests do not establish rendering.
+
+The optional system-carousel logoPath property accepts {system:theme} to select each tile from the active console material folder. Themes without it keep their existing logo behavior. Refresh generates these vector assets and the launch backgrounds locally from the imported theme.
+
+The installed build and theme were checked on the Xbox console screen and SNES console/game-list screens. Menu and game-launch appearance still require a live check; the menu input was blocked by automatic approval review. Generator tests and the native family test suite passed.
+

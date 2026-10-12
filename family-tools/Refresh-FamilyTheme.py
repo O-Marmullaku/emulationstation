@@ -50,6 +50,103 @@ def tile(source, destination):
     write(destination, svg)
 
 
+# Console materials are independent of profile identity and accent choice.
+CONSOLE_STYLES = {
+    'snes': ('E3E3E8', 'F4F3F6', 'BDBBC8', '45415D', '282737', 24),
+    'gc': ('100D25', '211B3B', '524572', 'C9B9FF', 'F1EDFF', 3),
+    'xbox360': ('222A23', 'DBDFD9', 'A4ADA0', '365527', '232A22', 18),
+    'neutral': ('11151C', '202630', '3B4553', 'D3DCE8', 'EDF1F6', 14),
+}
+CONSOLE_GROUPS = {'snes': ('snes', 'satellaview'), 'gc': ('gc',), 'xbox360': ('xbox360',)}
+
+
+def svg_file(path, width, height, body):
+    path.write_text(f'<svg xmlns="http://www.w3.org/2000/svg" width="{width}" height="{height}" viewBox="0 0 {width} {height}">{body}</svg>', encoding='utf-8')
+
+
+def console_assets(tiles):
+    for style, (bg, panel, border, accent, ink, radius) in CONSOLE_STYLES.items():
+        folder = tiles / style
+        folder.mkdir(exist_ok=True)
+        background = f'<rect width="1920" height="1080" fill="#{bg}"/>'
+        if style == 'snes':
+            background += '<path d="M-120 940Q480 400 1180 420T2070 170V1100H-120Z" fill="#D7D6DF"/><path d="M-60 970Q650 520 2000 580" fill="none" stroke="#CECDD7" stroke-width="2"/>'
+            for x,y,c in [(1600,435,'D64B52'),(1643,478,'D3AC31'),(1557,478,'388962'),(1600,521,'456DB5')]:
+                background += f'<circle cx="{x}" cy="{y}" r="15" fill="#{c}" opacity=".42"/>'
+        elif style == 'gc':
+            for x,y,z in [(40,440,90),(160,560,65),(410,480,42),(1500,440,85),(1740,600,120),(110,850,45),(1660,880,70)]:
+                background += f'<path d="M{x} {y}l{z} {-z*.5}l{z} {z*.5}l{-z} {z*.5}Z" fill="#3B2F61"/><path d="M{x} {y}l{z} {z*.5}v{z}l{-z} {-z*.5}Z" fill="#241C40"/><path d="M{x+z} {y+z*.5}l{z} {-z*.5}v{z}l{-z} {z*.5}Z" fill="#30234F"/>'
+        elif style == 'xbox360':
+            background += '<defs><linearGradient id="blade"><stop stop-color="#7E877B"/><stop offset=".6" stop-color="#353E35"/><stop offset="1" stop-color="#19231B"/></linearGradient></defs><path d="M0 0H130Q20 520 155 1080H0Z" fill="url(#blade)"/><path d="M1920 0H1790Q1900 520 1765 1080H1920Z" fill="url(#blade)"/><path d="M115 0Q10 520 140 1080M1805 0Q1910 520 1780 1080" fill="none" stroke="#8FBE45" stroke-width="5"/><path d="M150 470Q950 340 1780 470V940Q900 825 150 940Z" fill="#2C352D"/>'
+        svg_file(folder/'waves.svg',1920,1080,background)
+        chrome = {'snes': ('383447','E8E5F0'), 'gc': ('18112F','C9B9FF'), 'xbox360': ('343D34','BBD894'), 'neutral': ('141A23','D3DCE8')}[style]
+        head=(tiles/'header.svg').read_text(encoding='utf-8').replace('#0D1118','#'+chrome[0]).replace('#080808','#17171E').replace('#FFFFFF','#'+chrome[1])
+        (folder/'header.svg').write_text(head,encoding='utf-8')
+        svg_file(folder/'game-header.svg',1920,100,f'<rect width="1920" height="100" fill="#{chrome[0]}"/>')
+        svg_file(folder/'footer.svg',1920,100,f'<rect x="1" y="1" width="1918" height="98" rx="{radius}" fill="#{chrome[0]}" stroke="#{border}"/>')
+        stripe = ''
+        if style == 'snes':
+            for x,c in [(32,'456DB5'),(47,'388962'),(62,'D3AC31'),(77,'D64B52')]:
+                stripe += f'<circle cx="{x}" cy="355" r="4" fill="#{c}"/>'
+        if style == 'xbox360':
+            stripe = '<path d="M1 24Q1 1 24 1H100V7H24Q7 7 7 24V66H1Z" fill="#6F9B35"/>'
+        svg_file(folder/'surface.svg',600,380,f'<rect x="1" y="1" width="598" height="378" rx="{radius}" fill="#{panel}" stroke="#{border}"/>'+f'<path d="M35 76H565" stroke="#{border}"/>'+stripe)
+        svg_file(folder/'focus.svg',440,440,f'<rect x="18" y="18" width="404" height="404" rx="{radius}" fill="none" stroke="#{accent}" stroke-width="3"/><path d="M20 338H420V404Q420 420 404 420H36Q20 420 20 404Z" fill="#{accent}"/>')
+        for source in tiles.glob('*.svg'):
+            if source.name in ('surface.svg','waves.svg','focus.svg','footer.svg','header.svg','ps-mark.svg','neutral-splash.svg','splash-panel.svg','profile-ring.svg'): continue
+            doc=ET.parse(source).getroot()
+            for node in doc.iter():
+                node.tag=node.tag.split('}')[-1]
+                if node.tag.split('}')[-1]=='stop':
+                    node.set('stop-color','#'+panel)
+                if node.tag.split('}')[-1]=='rect' and node.get('fill')=='url(#tile)':
+                    node.set('rx',str(radius)); node.set('stroke','#'+border)
+                if node.get('fill')=='#FFFFFF':node.set('fill','#'+accent)
+                if node.get('stroke')=='#FFFFFF':node.set('stroke','#'+accent)
+            doc.set('xmlns','http://www.w3.org/2000/svg')
+            write(folder/source.name,doc)
+    svg_file(tiles/'splash-panel.svg',600,380,'<rect x="1" y="1" width="598" height="378" rx="20" fill="#171D27"/>')
+    svg_file(tiles/'neutral-splash.svg',1920,1080,'<defs><radialGradient id="ambient"><stop stop-color="#242D3C"/><stop offset="1" stop-color="#0D1118"/></radialGradient></defs><rect width="1920" height="1080" fill="url(#ambient)"/>')
+
+
+def console_views(root):
+    for style, names in CONSOLE_GROUPS.items():
+        bg,panel,border,accent,ink,radius=CONSOLE_STYLES[style]
+        for name in names:
+            view=ET.SubElement(root,'view',name='system',attrib={'if':f"{{system.theme}} == '{name}'"})
+            for element, asset in [('family-waves','waves.svg'),('family-story-card','surface.svg'),('family-stats-card','surface.svg'),('family-focus','focus.svg')]:
+                props(view,'image',element,path=f'./family-tiles/{style}/{asset}',color='FFFFFF')
+            props(view,'image','family-selected-tile',path=f'./family-tiles/{style}/${{system.theme}}.svg')
+            props(view,'carousel','systemcarousel',logoPath=f'./family-tiles/{style}/{{system:theme}}.svg')
+            for element in ('system_name','family-subtitle'):
+                props(view,'text',element,color=('282737' if style=='snes' else 'F1F3F4'))
+            for element in ('family-story','family-story-note','family-stats','family-stats-note'):
+                props(view,'text',element,color=ink)
+            for element in ('family-story-title','family-stats-title'):
+                props(view,'text',element,color=accent)
+            props(view,'text','start',color=('191329' if style=='gc' else 'FFFFFF'))
+            chrome=ET.SubElement(root,'view',name='system,detailed,basic,grid',attrib={'if':f"{{system.theme}} == '{name}'"})
+            props(chrome,'image','family-header',path=f'./family-tiles/{style}/header.svg',color='FFFFFF')
+            props(chrome,'image','family-footer',path=f'./family-tiles/{style}/footer.svg',pos='.015 .917',size='.970 .070',color='FFFFFF',zIndex='90')
+            games=ET.SubElement(root,'view',name='detailed,basic,grid',attrib={'if':f"{{system.theme}} == '{name}'"})
+            props(games,'image','family-header',path=f'./family-tiles/{style}/game-header.svg')
+            props(games,'image','background',path=f'./family-tiles/{style}/waves.svg',pos='0 0',size='1 1',color='FFFFFF',zIndex='1',opacity='1')
+            foreground = ink if style=='snes' else 'F1F3F4'
+            for element in ('md_description','md_genre','md_developer','md_name','md_players','gamecarouselLogoText'):
+                props(games,'text',element,color=foreground,glowSize='0')
+            props(games,'datetime','md_releasedate',color=foreground)
+            props(games,'textlist','gamelist',primaryColor=foreground,secondaryColor=foreground,selectorColor=accent,selectedColor=('191329' if style=='gc' else 'FFFFFF'),selectorImagePath='none',glowSize='0')
+            for element in ('default','selected'):
+                props(games,'gridtile',element,backgroundColor=panel,backgroundEdgeColor=(accent if element=='selected' else border))
+            menu=ET.SubElement(root,'view',name='menu',attrib={'if':f"{{system.theme}} == '{name}'"})
+            props(menu,'menuBackground','menubg',color=panel,centerColor=panel)
+            for element in ('menutext','menutitle','menufooter'):
+                props(menu,'menuText',element,color=ink,selectorColor=accent,selectorColorEnd=accent,selectedColor=('191329' if style=='gc' else 'FFFFFF'),separatorColor=border)
+            props(menu,'menuTextSmall','menutextsmall',color=ink)
+            props(menu,'menuGroup','menugroup',color=accent,separatorColor=border)
+
+
+
 def refresh(theme):
     theme = Path(theme)
     main_path = theme / 'theme.xml'
@@ -75,7 +172,7 @@ def refresh(theme):
     write(tiles/'focus.svg',focus)
     (tiles/'footer.svg').write_text('<svg xmlns="http://www.w3.org/2000/svg" width="1920" height="100" viewBox="0 0 1920 100"><rect x="1" y="1" width="1918" height="98" rx="16" fill="#101010" stroke="#404040"/></svg>',encoding='utf-8')
     (tiles/'header.svg').write_text('''<svg xmlns="http://www.w3.org/2000/svg" width="1920" height="100" viewBox="0 0 1920 100">
-<rect width="1920" height="99" fill="#FFFFFF" opacity=".025"/><path d="M0 99H1920" stroke="#FFFFFF" opacity=".20"/>
+<rect width="1920" height="99" fill="#0D1118"/><path d="M0 99H1920" stroke="#FFFFFF" opacity=".20"/>
 <circle cx="75" cy="50" r="33" fill="#101010" stroke="#FFFFFF" stroke-width="1.5"/>
 <rect x="590" y="18" width="740" height="63" rx="32" fill="#080808" opacity=".72"/>
 <path d="M830 34V64" stroke="#FFFFFF" opacity=".7"/>
@@ -106,6 +203,8 @@ def refresh(theme):
         symbol.set('xmlns','http://www.w3.org/2000/svg')
         write(tiles/'ps-mark.svg',symbol)
 
+    svg_file(tiles/'profile-ring.svg',1920,100,'<circle cx="75" cy="50" r="33" fill="none" stroke="#FFFFFF" stroke-width="1.5"/>')
+    console_assets(tiles)
     root = ET.Element('theme')
     ET.SubElement(root, 'formatVersion').text = '7'
     variables = ET.SubElement(root, 'variables')
@@ -120,6 +219,7 @@ def refresh(theme):
     for name in ('friends','trophy-level','systemInfoEx','systemInfoEx2'):
         props(common,'text',name,visible='false')
     props(common,'image','family-header',path='./family-tiles/header.svg',pos='0 0',size='1 .0926',color='${family.accent}',zIndex='95')
+    props(common,'image','family-profile-ring',path='./family-tiles/profile-ring.svg',pos='0 0',size='1 .0926',color='${family.accent}',zIndex='98')
     props(common,'image','avatar',pos='0.024 0.019',maxSize='0.030 0.054',origin='0 0',color='FFFFFF',roundCorners='.5',zIndex='99')
     props(common,'text','username',text='${family.profile.name}',pos='0.076 0.035',size='0.22 0.036',fontSize='.025',fontPath='./_theme_inc/fonts/SST Bold.ttf',glowSize='0')
     avatar = ET.SubElement(root,'view',name='system,detailed,basic,grid',ifSubset='system-avatar:angry_cat')
@@ -141,18 +241,18 @@ def refresh(theme):
     for name in ('linea-inferior','pie-barra'):
         props(view,'image',name,visible='false')
     props(view,'image','background',path='./_theme_inc/images/pixel-blanco.png',color='${family.bg}',size='1 1',pos='0 0',zIndex='1')
-    props(view,'image','family-waves',path='./family-tiles/${family.skin}/waves.svg',color='FFFFFF',size='1 1',pos='0 0',zIndex='2')
+    props(view,'image','family-waves',path='./family-tiles/neutral/waves.svg',color='FFFFFF',size='1 1',pos='0 0',zIndex='2')
     props(view,'image','family-footer',path='./family-tiles/footer.svg',pos='.015 .917',size='.970 .070',color='${family.accent}',zIndex='70')
     props(view,'image','logo',path='./family-tiles/${family.skin}/${system.theme}.svg',color='FFFFFF',saturation='1')
-    props(view,'carousel','systemcarousel',pos='-0.535 0.113',size='1.56 1',logoSize='0.137 0.195',logoScale='1.176',minLogoOpacity='1')
+    props(view,'carousel','systemcarousel',pos='-0.535 0.113',size='1.56 1',logoSize='0.137 0.195',logoScale='1.176',minLogoOpacity='1',logoPath='./family-tiles/neutral/{system:theme}.svg')
     props(view,'image','marco-activo',visible='false')
-    props(view,'image','family-selected-tile',path='./family-tiles/${family.skin}/${system.theme}.svg',pos='.164 .120',size='.162 .215',color='FFFFFF',zIndex='85')
-    props(view,'image','family-focus',path='./family-tiles/${family.skin}/focus.svg',pos='.156 .106',size='.178 .297',color='FFFFFF',zIndex='89')
+    props(view,'image','family-selected-tile',path='./family-tiles/neutral/${system.theme}.svg',pos='.164 .120',size='.162 .215',color='FFFFFF',zIndex='85')
+    props(view,'image','family-focus',path='./family-tiles/neutral/focus.svg',pos='.156 .106',size='.178 .297',color='FFFFFF',zIndex='89')
     props(view,'text','start',pos='.164 .337',size='.162 .044',fontSize='.026',backgroundColor='00000000',zIndex='90')
     props(view,'text','system_name',pos='.348 .431',size='.60 .066',fontSize='.060',fontPath='./_theme_inc/fonts/SST Bold.ttf',glowSize='0')
     # Shared geometry; only palette tokens and per-console copy vary.
     for name, x, width in [('story',.345,.300),('stats',.657,.317)]:
-        props(view,'image','family-'+name+'-card',path='./family-tiles/${family.skin}/surface.svg',pos=f'{x} 0.558',size=f'{width} 0.297',color='FFFFFF',zIndex='70')
+        props(view,'image','family-'+name+'-card',path='./family-tiles/neutral/surface.svg',pos=f'{x} 0.558',size=f'{width} 0.297',color='FFFFFF',zIndex='70')
     props(view,'image','family-hardware',path='./_theme_inc/images/consoles/${system.theme}.png',pos='0.020 0.55',maxSize='0.305 0.31',origin='0 0',zIndex='75')
     def text(name, content, pos, size, font=.025, color='EDF0F5'):
         props(view,'text',name,text=content,pos=pos,size=size,fontPath='./_theme_inc/fonts/SST Roman.ttf',fontSize=font,color=color,alignment='left',verticalAlignment='top',zIndex='80',lineSpacing='1.15')
@@ -161,14 +261,32 @@ def refresh(theme):
     for name in ('family-library','family-header-playtime'):
         view.find(f"text[@name='{name}']/zIndex").text='100'
     text('family-subtitle','${system.manufacturer} · ${system.releaseYear}','.349 .505','.5 .038',.029,'${family.accent}')
-    text('family-story-title','${system.fullName}','0.367 0.579','0.26 0.04',.028,'${family.accent}')
+    text('family-story-title','About this console','0.367 0.579','0.26 0.04',.028,'${family.accent}')
     text('family-story','${system.manufacturer}\nFirst released: ${system.releaseYear}','0.367 0.637','0.26 0.11',.024)
     text('family-story-note','Choose a game to continue your library.','0.363 0.772','0.26 0.07',.021)
     text('family-stats-title','Your library','0.677 0.579','0.28 0.04',.028,'${family.accent}')
-    text('family-stats','Games: {binding:total}\nPlaytime: {binding:gameTime}','0.677 0.637','0.28 0.18',.024)
+    text('family-stats','Games: {binding:total}\nPlaytime: {binding:gameTimeReadable}','0.677 0.637','0.28 0.18',.024)
     text('family-stats-note','Playtime follows your Personal / Everyone display choice.','0.676 0.78','0.28 0.06',.021)
     for name in ('family-story-title','family-stats-title'):
         ET.SubElement(view.find(f"text[@name='{name}']"),'fontPath').text='./_theme_inc/fonts/SST Bold.ttf'
+
+    games=ET.SubElement(root,'view',name='detailed,basic,grid')
+    props(games,'video','default_background',visible='false')
+    for element in ('consoles','logo','background-art','overlay','pie-barra','linea-inferior','linea-infos','md_cheevos','md_notcheevos'):
+        props(games,'image',element,visible='false')
+    for element in ('md_lbl_playcount','md_playcount','md_lbl_gametime','md_gametime','logoText'):
+        props(games,'text',element,visible='false')
+    props(games,'image','background',path='./family-tiles/launch/${system.theme}.svg',pos='0 0',size='1 1',color='FFFFFF',opacity='1',zIndex='1')
+    props(games,'image','family-header',path='./family-tiles/neutral/game-header.svg',color='FFFFFF')
+    props(games,'image','family-footer',path='./family-tiles/neutral/footer.svg',pos='.015 .917',size='.970 .070',color='FFFFFF',zIndex='90')
+    props(games,'text','family-game-title',text='{game:name}',pos='.32 .029',size='.40 .055',fontPath='./_theme_inc/fonts/SST Bold.ttf',fontSize='.025',color='FFFFFF',alignment='center',zIndex='100')
+    console_views(root)
+    for name in ('psx','ps2','ps3'):
+        v=ET.SubElement(root,'view',name='system',attrib={'if':f"{{system.theme}} == '{name}'"})
+        for element,asset in [('family-waves','waves.svg'),('family-story-card','surface.svg'),('family-stats-card','surface.svg'),('family-focus','focus.svg')]:
+            props(v,'image',element,path=f'./family-tiles/blue/{asset}',color='FFFFFF')
+        props(v,'image','family-selected-tile',path='./family-tiles/blue/${system.theme}.svg')
+        props(v,'carousel','systemcarousel',logoPath='./family-tiles/blue/{system:theme}.svg')
 
     # PS2 facts are separated from shared layout and palette; no profile names.
     ps2=ET.SubElement(root,'view',name='system',attrib={'if':"{system.theme} == 'ps2'"})
@@ -204,7 +322,7 @@ def refresh(theme):
     ET.SubElement(splash,'include').text='./theme.xml'
     loading=ET.SubElement(splash,'view',name='splash')
     props(loading,'splash','splash',backgroundColor='${family.bg}')
-    props(loading,'image','background',path='./family-tiles/${family.skin}/waves.svg',pos='0 0',size='1 1',origin='0 0',color='FFFFFF')
+    props(loading,'image','background',path='./family-tiles/neutral-splash.svg',pos='0 0',size='1 1',origin='0 0',color='FFFFFF')
     avatar=props(loading,'image','avatar',path='./_theme_options/avatars/${image.avatar}',pos='.5 .41',maxSize='.0675 .12',origin='.5 .5',roundCorners='.08',zIndex='10')
     ET.SubElement(avatar,'path',ifSubset='system-avatar:custom').text='./custom-avatar.png'
     ET.SubElement(avatar,'path',ifSubset='system-avatar:angry_cat').text='./family-avatars/angry_cat.png'
@@ -216,11 +334,31 @@ def refresh(theme):
         if node.get('name') not in ('avatar','username'):
             node.attrib.pop('extra',None)
     write(splash_path,splash)
+    launch_dir=tiles/'launch'; launch_dir.mkdir(exist_ok=True)
+    for source in logos.glob('*.svg'):
+        if source.stem.endswith('-w'):continue
+        style=next((key for key,names in CONSOLE_GROUPS.items() if source.stem in names),'blue' if source.stem in ('psx','ps2','ps3') else 'neutral')
+        (launch_dir/source.name).write_bytes((tiles/style/'waves.svg').read_bytes())
+    if (theme/'gamesplash.xml').exists() and not (theme/'gamesplash-before-family.xml').exists():
+        (theme/'gamesplash-before-family.xml').write_bytes((theme/'gamesplash.xml').read_bytes())
+    launch=copy.deepcopy(splash)
+    loading=launch.find("view[@name='splash']")
+    loading.find("image[@name='background']/path").text='./family-tiles/launch/{game:system:theme}.svg'
+    # A quiet center panel keeps names readable over light and dark console palettes.
+    props(loading,'image','launch-panel',path='./family-tiles/splash-panel.svg',pos='.28 .27',size='.44 .43',zIndex='6')
+    loading.find("text[@name='username']/fontSize").text='.030'
+    loading.find("text[@name='username']/pos").text='.25 .48'
+    label=loading.find("text[@name='label']")
+    label.find('visible').text='true'
+    for key,value in dict(pos='.30 .55',size='.40 .07',fontSize='.030',fontPath='./_theme_inc/fonts/SST Bold.ttf',color='FFFFFF',alignment='center',zIndex='12').items():
+        ET.SubElement(label,key).text=value
+    loading.find("image[@name='progressbar']/pos").text='.4 .65'
+    write(theme/'gamesplash.xml',launch)
     for include in list(main.findall('include')):
         if include.text=='./family-console-screen.xml':main.remove(include)
     ET.SubElement(main,'include').text='./family-console-screen.xml'
     write(main_path,main)
-    return len([p for p in tiles.glob('*.svg') if p.name not in ('surface.svg','waves.svg','focus.svg','footer.svg','header.svg','ps-mark.svg')])
+    return len([p for p in tiles.glob('*.svg') if p.name not in ('surface.svg','waves.svg','focus.svg','footer.svg','header.svg','ps-mark.svg','neutral-splash.svg','splash-panel.svg','profile-ring.svg')])
 
 
 if __name__=='__main__':

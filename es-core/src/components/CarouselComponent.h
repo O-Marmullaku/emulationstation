@@ -107,6 +107,7 @@ public:
 	float getTransitionSpeed() { return mTransitionSpeed; }
 
 	std::shared_ptr<GuiComponent> getLogo(int index);
+	void setLogoPath(const std::string& path);
 
 protected:
 	void onCursorChanged(const CursorState& state) override;
@@ -138,6 +139,7 @@ private:
 	std::function<void(CursorState state)> mCursorChangedCallback;
 
 	std::shared_ptr<ThemeData>	mTheme;
+	std::string mLogoPath;
 
 	std::string					mThemeViewName;
 	std::string					mThemeLogoName;

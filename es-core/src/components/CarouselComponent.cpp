@@ -722,6 +722,13 @@ IBindable* CarouselComponent::getActiveObject()
 	return mEntries[mCursor].object;
 }
 
+void CarouselComponent::setLogoPath(const std::string& path)
+{
+	if (mLogoPath == path) return;
+	mLogoPath = path;
+	for (auto& entry : mEntries) entry.data.logo.reset();
+}
+
 void CarouselComponent::ensureLogo(IList<CarouselComponentData, IBindable*>::Entry& entry)
 {
 	if (entry.data.logo != nullptr)
@@ -761,6 +768,11 @@ void CarouselComponent::ensureLogo(IList<CarouselComponentData, IBindable*>::Ent
 		}
 
 		std::string marqueePath = entry.object->getProperty(mediaName).toString();
+		if (!mLogoPath.empty())
+		{
+			std::string path = Utils::String::replace(mLogoPath, "{system:theme}", entry.object->getProperty("theme").toString());
+			if (Utils::FileSystem::exists(path)) marqueePath = path;
+		}
 
 		if (mImageSource != CarouselImageSource::TEXT && !marqueePath.empty() && Utils::FileSystem::exists(marqueePath))
 		{
