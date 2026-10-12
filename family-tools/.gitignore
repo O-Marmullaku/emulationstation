@@ -1,0 +1,5 @@
+*.zip
+*.sha256
+family/*.exe
+family/host-setup.log
+family/host-setup.status

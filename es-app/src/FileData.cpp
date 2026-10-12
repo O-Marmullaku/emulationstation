@@ -1,3 +1,4 @@
+#include "FamilyProfiles.h"
 #include "FileData.h"
 
 #include "utils/FileSystemUtil.h"
@@ -700,7 +701,28 @@ bool FileData::launchGame(Window* window, LaunchGameOptions options)
 	if (system == nullptr)
 		return false;
 
+	std::unique_ptr<FamilyProfiles::Session> familySession;
+	FamilyProfiles::Profile owner;
+	if (FamilyProfiles::enabled())
+	{
+		try
+		{
+			owner = FamilyProfiles::require(options.saveStateInfo ? options.saveStateInfo->profileId : "");
+			familySession = std::make_unique<FamilyProfiles::Session>(owner.id);
+		}
+		catch (const std::exception& error)
+		{
+			window->pushGui(new GuiMsgBox(window, error.what(), _("OK"), nullptr));
+			return false;
+		}
+	}
 	std::string command = getlaunchCommand(options);
+	if (!command.empty() && familySession)
+	{
+		command += " -saves \"" + owner.root + "\"";
+		if (system->getName() == "ps2")
+			command += " -bios \"" + Utils::FileSystem::combine(owner.root, "bios") + "\"";
+	}
 	if (command.empty())
 		return false;
 

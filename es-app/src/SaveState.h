@@ -12,6 +12,9 @@ struct SaveState
 
 	bool isSlotValid() const { return slot != -99; }
 	
+	std::string profileId;
+	std::string profileName;
+	unsigned int profileColor = 0;
 	std::string rom;
 	std::string fileName;
 	std::string screenshot;

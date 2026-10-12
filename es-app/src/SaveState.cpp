@@ -1,3 +1,4 @@
+#include "FamilyProfiles.h"
 #include "SaveState.h"
 #include "SystemData.h"
 #include "FileData.h"
@@ -81,7 +82,7 @@ std::string SaveState::setupSaveState(FileData* game, const std::string& command
 	bool supportsIncremental = config != nullptr ? config->incremental : game->getSourceFileData()->getSystem()->getSaveStateRepository()->supportsIncrementalSaveStates();
 
 	// We start games with new slots : If the users saves the game, we don't loose the previous save
-	int nextSlot = SaveStateRepository::getNextFreeSlot(game, this->config);
+	int nextSlot = SaveStateRepository::getNextFreeSlot(game, this->config, profileId);
 
 	if (!isSlotValid())
 	{
@@ -207,7 +208,7 @@ void SaveState::onGameEnded(FileData* game)
 	}
 
 	if (this->config != nullptr && this->config->incremental)
-		SaveStateRepository::renumberSlots(game, this->config);
+		SaveStateRepository::renumberSlots(game, this->config, profileId);
 }
 
 void SaveState::remove() const

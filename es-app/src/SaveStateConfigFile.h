@@ -29,7 +29,7 @@ public:
 
 	bool matchSlotFile(const std::string& filename, std::string& romName, int& slot);
 	bool matchAutoFile(const std::string& filename, std::string& romName);
-	std::string getDirectory(SystemData* system);
+	std::string getDirectory(SystemData* system, const std::string& root = "");
 
 	bool enabled;
 	std::string file;

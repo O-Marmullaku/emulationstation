@@ -1,0 +1,21 @@
+[
+  {
+    "DisplayName": "Osman",
+    "ClientId": "OSMAN",
+    "AccentColor": "#5588CC",
+    "ComputerName": "OSMAN"
+  },
+  {
+    "DisplayName": "stube",
+    "ClientId": "stube-pc",
+    "AccentColor": "#4CAF50",
+    "ComputerName": "stube-pc"
+  },
+  {
+    "DisplayName": "bibi",
+    "ClientId": "desktop-8ibispc",
+    "AccentColor": "#F48FB1",
+    "ComputerName": "desktop-8ibispc"
+  }
+]
+

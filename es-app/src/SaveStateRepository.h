@@ -17,8 +17,8 @@ public:
 	~SaveStateRepository();
 
 	static bool isEnabled(FileData* game);
-	static int	getNextFreeSlot(FileData* game, std::shared_ptr<SaveStateConfig> config);
-	static void renumberSlots(FileData* game, std::shared_ptr<SaveStateConfig> config);
+	static int	getNextFreeSlot(FileData* game, std::shared_ptr<SaveStateConfig> config, const std::string& profileId = "");
+	static void renumberSlots(FileData* game, std::shared_ptr<SaveStateConfig> config, std::string profileId = "");
 
 	bool supportsAutoSave();
 	bool supportsIncrementalSaveStates();
@@ -28,6 +28,7 @@ public:
 
 	void clear();
 	void refresh();
+	const std::vector<std::unique_ptr<SaveState>>& getProfileLaunchStates() const { return mProfileLaunchStates; }
 
 	SaveState* getGameAutoSave(FileData* game);
 	SaveState* getDefaultAutoSaveSaveState();
@@ -39,6 +40,7 @@ private:
 	// std::string getDefaultSavesPath();
 
 	SystemData* mSystem;
+	std::vector<std::unique_ptr<SaveState>> mProfileLaunchStates;
 	std::map<std::string, std::vector<SaveState*>> mStates;
 
 	static SaveState* _empty;

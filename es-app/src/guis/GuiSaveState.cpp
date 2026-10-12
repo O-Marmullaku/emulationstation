@@ -1,3 +1,4 @@
+#include "FamilyProfiles.h"
 #include "GuiSaveState.h"
 #include "SystemData.h"
 #include "FileData.h"
@@ -29,6 +30,11 @@ GuiSaveState::GuiSaveState(Window* window, FileData* game, const std::function<v
 	mBackground.setPostProcessShader(theme->Background.menuShader);
 
 	mTitle = std::make_shared<TextComponent>(mWindow, _("SAVESTATE MANAGER"), theme->Title.font, theme->Title.color, ALIGN_CENTER);
+	if (FamilyProfiles::enabled())
+	{
+		try { mTitle->setText(_("SAVES") + std::string(" — ") + FamilyProfiles::require("").name); }
+		catch (const std::exception& error) { mTitle->setText(error.what()); }
+	}
 	mLayout.setEntry(mTitle, Vector2i(1, 1), false, true);
 
 	mGrid = std::make_shared<ImageGridComponent<SaveStateItem>>(mWindow);
@@ -116,17 +122,19 @@ void GuiSaveState::loadGrid()
 				return file1->config->isActiveConfig(mGame);
 			
 			if (supportsIncrementalSaveStates && file1->config != nullptr ? file1->config->incremental : incrementalSaveStates)
-				return file1->creationDate >= file2->creationDate;
+				return file1->creationDate > file2->creationDate;
 
 			return file1->slot < file2->slot; 
 		});
 
 
 	mGrid->add(_("START NEW GAME"), ":/freeslot.svg", SaveStateItem(mRepository->getDefaultNewGameSaveState()));
+	for (const auto& state : mRepository->getProfileLaunchStates())
+		mGrid->add(state->profileName + "\r\n" + _("IN-GAME SAVES"), ":/freeslot.svg", SaveStateItem(state.get()), state->profileColor);
 
 	if (mRepository->supportsAutoSave() && mGame->getCurrentGameSetting("autosave") == "1")
 	{
-		auto autoSave = std::find_if(states.cbegin(), states.cend(), [](SaveState* x) { return x->slot == -1; });
+		auto autoSave = std::find_if(states.cbegin(), states.cend(), [](SaveState* x) { return x->slot == -1 && x->profileId == FamilyProfiles::currentId(); });
 		if (autoSave == states.cend())
 			mGrid->add(_("START NEW AUTO SAVE"), ":/freeslot.svg", SaveStateItem(mRepository->getDefaultAutoSaveSaveState()));
 	}
@@ -143,12 +151,14 @@ void GuiSaveState::loadGrid()
 				coreinfo = std::string("\r\n") + item->config->emulator + ": " + item->config->core;
 		}
 
+		if (!item->profileName.empty())
+			coreinfo += "\r\n" + item->profileName;
 		if (item->slot == -1)
-			mGrid->add(_("AUTO SAVE") + std::string("\r\n") + item->creationDate.toLocalTimeString() + coreinfo, item->getScreenShot(), SaveStateItem(item));
+			mGrid->add(_("AUTO SAVE") + std::string("\r\n") + item->creationDate.toLocalTimeString() + coreinfo, item->getScreenShot(), SaveStateItem(item), item->profileColor);
 		else if (supportsIncrementalSaveStates && item->config != nullptr ? item->config->incremental : incrementalSaveStates)
-			mGrid->add(item->creationDate.toLocalTimeString() + coreinfo, item->getScreenShot(), SaveStateItem(item));
+			mGrid->add(item->creationDate.toLocalTimeString() + coreinfo, item->getScreenShot(), SaveStateItem(item), item->profileColor);
 		else 
-			mGrid->add(_("SLOT") + std::string(" ") + std::to_string(item->slot) + std::string("\r\n") + item->creationDate.toLocalTimeString() + coreinfo, item->getScreenShot(), SaveStateItem(item));
+			mGrid->add(_("SLOT") + std::string(" ") + std::to_string(item->slot) + std::string("\r\n") + item->creationDate.toLocalTimeString() + coreinfo, item->getScreenShot(), SaveStateItem(item), item->profileColor);
 	}
 }
 
@@ -230,13 +240,19 @@ bool GuiSaveState::input(InputConfig* config, Input input)
 					
 					const SaveStateItem& toDelete = mGrid->getSelected();
 					auto conf = toDelete.saveState->config;
+					const auto owner = toDelete.saveState->profileId;
+					try
+					{
+					FamilyProfiles::Session session(owner);
 
 					toDelete.saveState->remove();
 
-					SaveStateRepository::renumberSlots(mGame, conf);
+					SaveStateRepository::renumberSlots(mGame, conf, owner);
 					mRepository->refresh();
 
 					loadGrid();
+					}
+					catch (const std::exception& error) { mWindow->pushGui(new GuiMsgBox(mWindow, error.what(), _("OK"), nullptr)); }
 				}, 
 				_("NO"), nullptr));
 		}
@@ -250,7 +266,10 @@ bool GuiSaveState::input(InputConfig* config, Input input)
 		{
 			const SaveStateItem& toCopy = mGrid->getSelected();
 			
-			int slot = mRepository->getNextFreeSlot(mGame, toCopy.saveState->config);
+			try
+			{
+			FamilyProfiles::Session session(toCopy.saveState->profileId);
+			int slot = mRepository->getNextFreeSlot(mGame, toCopy.saveState->config, toCopy.saveState->profileId);
 			if (slot >= 0)
 			{				
 				if (toCopy.saveState->copyToSlot(slot))
@@ -259,6 +278,8 @@ bool GuiSaveState::input(InputConfig* config, Input input)
 					loadGrid();
 				}
 			}
+			}
+			catch (const std::exception& error) { mWindow->pushGui(new GuiMsgBox(mWindow, error.what(), _("OK"), nullptr)); }
 		}
 
 		return true;

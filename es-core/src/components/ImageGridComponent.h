@@ -53,6 +53,7 @@ struct ImageGridData
 {
 	std::shared_ptr<GridTileComponent> tile;
 	std::string texturePath;
+	unsigned int outlineColor = 0;
 };
 
 // Type trait to check if a type derives from IBindable
@@ -86,7 +87,7 @@ public:
 
 	std::string getThemeTypeName() override { return "imagegrid"; }
 
-	void add(const std::string& name, const std::string& imagePath, const T& obj);
+	void add(const std::string& name, const std::string& imagePath, const T& obj, unsigned int outlineColor = 0);
 	virtual void clear();
 
 	void setImage(const std::string& imagePath, const T& obj);
@@ -470,12 +471,13 @@ ImageGridComponent<T>::ImageGridComponent(Window* window) : IList<ImageGridData,
 }
 
 template<typename T>
-void ImageGridComponent<T>::add(const std::string& name, const std::string& imagePath, const T& obj)
+void ImageGridComponent<T>::add(const std::string& name, const std::string& imagePath, const T& obj, unsigned int outlineColor)
 {
 	typename IList<ImageGridData, T>::Entry entry;
 	entry.name = name;
 	entry.object = obj;
 	entry.data.texturePath = imagePath;
+	entry.data.outlineColor = outlineColor;
 
 	static_cast<IList< ImageGridData, T >*>(this)->add(entry);
 
@@ -1244,6 +1246,7 @@ void ImageGridComponent<T>::onCursorChanged(const CursorState& state)
 template<typename T>
 void ImageGridComponent<T>::loadTile(std::shared_ptr<GridTileComponent> tile, typename IList<ImageGridData, T>::Entry& entry)
 {
+	tile->setOutlineColor(entry.data.outlineColor);
 	std::string name = entry.name;
 
 	IBindable* bindable = getBindable(entry);

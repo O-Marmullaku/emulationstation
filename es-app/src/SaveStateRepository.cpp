@@ -1,3 +1,4 @@
+#include "FamilyProfiles.h"
 #include "SaveStateRepository.h"
 #include "SystemData.h"
 #include "FileData.h"
@@ -32,6 +33,7 @@ SaveStateRepository::~SaveStateRepository()
 
 void SaveStateRepository::clear()
 {
+	mProfileLaunchStates.clear();
 	for (auto item : mStates)
 		for (auto state : item.second)
 			delete state;
@@ -61,12 +63,34 @@ void SaveStateRepository::refresh()
 {
 	clear();
 
+	std::vector<FamilyProfiles::Profile> profiles{FamilyProfiles::Profile{}};
+	try
+	{
+		if (FamilyProfiles::enabled())
+			profiles = FamilyProfiles::load();
+	}
+	catch (const std::exception& error)
+	{
+		LOG(LogError) << error.what();
+		return;
+	}
 	auto list = SaveStateConfigFile::getSaveStateConfigs(mSystem);
+	for (const auto& profile : profiles)
+	{
+		if (profile.id.empty())
+			continue;
+		std::unique_ptr<SaveState> state(new SaveState(-99));
+		state->profileId = profile.id;
+		state->profileName = profile.name;
+		state->profileColor = profile.color;
+		mProfileLaunchStates.push_back(std::move(state));
+	}
+	for (const auto& profile : profiles)
 	for (auto rs : list)
 	{
-		std::string path = rs->getDirectory(mSystem);
+		std::string path = rs->getDirectory(mSystem, profile.root);
 
-		if (!Utils::FileSystem::exists(path))
+		if (path.empty() || !Utils::FileSystem::exists(path))
 			continue;
 
 		auto files = Utils::FileSystem::getDirectoryFiles(path);
@@ -86,6 +110,9 @@ void SaveStateRepository::refresh()
 
 			SaveState* state = new SaveState();
 			state->config = rs;
+			state->profileId = profile.id;
+			state->profileName = profile.name;
+			state->profileColor = profile.color;
 			state->fileName = file.path;
 			state->rom = rom;
 			state->slot = slot;
@@ -199,13 +226,15 @@ bool SaveStateRepository::isEnabled(FileData* game)
 	return SaveStateConfigFile::getSaveStateConfigs(system).size() != 0;
 }
 
-int SaveStateRepository::getNextFreeSlot(FileData* game, std::shared_ptr<SaveStateConfig> config)
+int SaveStateRepository::getNextFreeSlot(FileData* game, std::shared_ptr<SaveStateConfig> config, const std::string& profileId)
 {
 	if (!isEnabled(game))
 		return -99;
 
 	auto repo = game->getSourceFileData()->getSystem()->getSaveStateRepository();	
 	auto states = repo->getSaveStates(game, config);
+	const auto owner = profileId.empty() ? FamilyProfiles::currentId() : profileId;
+	states.erase(std::remove_if(states.begin(), states.end(), [&](const SaveState* state) { return state->profileId != owner; }), states.end());
 
 	if (states.size() == 0)
 		return config != nullptr ? config->firstslot : 0;
@@ -220,7 +249,7 @@ int SaveStateRepository::getNextFreeSlot(FileData* game, std::shared_ptr<SaveSta
 	return -99;
 }
 
-void SaveStateRepository::renumberSlots(FileData* game, std::shared_ptr<SaveStateConfig> config)
+void SaveStateRepository::renumberSlots(FileData* game, std::shared_ptr<SaveStateConfig> config, std::string profileId)
 {
 	if (!isEnabled(game))
 		return;
@@ -229,6 +258,8 @@ void SaveStateRepository::renumberSlots(FileData* game, std::shared_ptr<SaveStat
 	repo->refresh();
 
 	auto states = repo->getSaveStates(game, config);
+	const auto owner = profileId.empty() ? FamilyProfiles::currentId() : profileId;
+	states.erase(std::remove_if(states.begin(), states.end(), [&](const SaveState* state) { return state->profileId != owner; }), states.end());
 	if (states.size() == 0)
 		return;
 
@@ -305,7 +336,7 @@ SaveState* SaveStateRepository::getGameAutoSave(FileData* game)
 	if (current)
 	{
 		auto states = getSaveStates(game, current);
-		auto it = std::find_if(states.cbegin(), states.cend(), [](const SaveState* x) { return x->slot == -1; });
+		auto it = std::find_if(states.cbegin(), states.cend(), [](const SaveState* x) { return x->slot == -1 && x->profileId == FamilyProfiles::currentId(); });
 		if (it != states.cend())
 			return *it;
 	}

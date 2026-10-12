@@ -465,6 +465,15 @@ void GridTileComponent::renderContent(const Transform4x4f& parentTrans, bool ren
 
 	if (mLabelMerged && isMinSize)
 		Renderer::popClipRect();
+	if (mOutlineColor)
+	{
+		Renderer::setMatrix(trans);
+		const float width = mSelected ? 5.0f : 3.0f;
+		Renderer::drawRect(0, 0, mSize.x(), width, mOutlineColor, mOutlineColor);
+		Renderer::drawRect(0, mSize.y() - width, mSize.x(), width, mOutlineColor, mOutlineColor);
+		Renderer::drawRect(0, 0, width, mSize.y(), mOutlineColor, mOutlineColor);
+		Renderer::drawRect(mSize.x() - width, 0, width, mSize.y(), mOutlineColor, mOutlineColor);
+	}
 }
 
 void GridTileComponent::render(const Transform4x4f& parentTrans)

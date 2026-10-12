@@ -1,4 +1,5 @@
 #include "SaveStateConfigFile.h"
+#include <filesystem>
 #include "SystemData.h"
 #include "FileData.h"
 #include "utils/StringUtil.h"
@@ -48,14 +49,23 @@ std::shared_ptr<SaveStateConfig> SaveStateConfig::Default()
 	return _default;
 }
 
-std::string SaveStateConfig::getDirectory(SystemData* system)
+std::string SaveStateConfig::getDirectory(SystemData* system, const std::string& root)
 {
 	std::string path = Utils::String::replace(directory, "{{system}}", system->getName());
 	path = Utils::String::replace(path, "{{emulator}}", emulator);
 	path = Utils::String::replace(path, "{{core}}", core.empty() ? emulator : core);
+	if (!root.empty())
+	{
+		const auto relative = std::filesystem::u8path(path);
+		if (relative.has_root_path() || std::find(relative.begin(), relative.end(), std::filesystem::path("..")) != relative.end())
+		{
+			LOG(LogError) << "Family saves require a relative directory inside the profile: " << path;
+			return "";
+		}
+	}
 
-	if (!Utils::String::startsWith(path, "/"))
-		path = Utils::FileSystem::combine(Paths::getSavesPath(), path);
+	if (!Utils::FileSystem::isAbsolute(path))
+		path = Utils::FileSystem::combine(root.empty() ? Paths::getSavesPath() : root, path);
 
 	return path;
 }

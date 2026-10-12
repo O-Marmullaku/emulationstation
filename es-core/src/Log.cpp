@@ -1,4 +1,5 @@
 #include "Log.h"
+#include <chrono>
 
 #include "utils/FileSystemUtil.h"
 #include "utils/Platform.h"

@@ -199,6 +199,7 @@ struct GridTileProperties
 class GridTileComponent : public GuiComponent
 {
 public:
+	void setOutlineColor(unsigned int color) { mOutlineColor = color; }
 	GridTileComponent(Window* window);
 	~GridTileComponent();
 
@@ -259,6 +260,7 @@ public:
 	bool    hasItemTemplate() { return mHasItemTemplate; }
 
 private:
+	unsigned int mOutlineColor = 0;
 	void	handleStoryBoard(bool activate);
 	void	resetProperties();
 	void	createVideo();

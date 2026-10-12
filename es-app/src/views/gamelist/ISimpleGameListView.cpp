@@ -20,6 +20,7 @@
 #include "guis/GuiTextEditPopupKeyboard.h"
 #include "SaveStateRepository.h"
 #include "guis/GuiSaveState.h"
+#include "FamilyProfiles.h"
 #include "guis/GuiGamelistOptions.h"
 #include "BasicGameListView.h"
 #include "utils/Randomizer.h"
@@ -413,8 +414,8 @@ void ISimpleGameListView::launchSelectedGame()
 	{
 		if (cursor->getType() == GAME)
 		{
-			if (SaveStateRepository::isEnabled(cursor) &&
-				(cursor->getCurrentGameSetting("savestates") == "1" || (cursor->getCurrentGameSetting("savestates") == "2" && cursor->getSourceFileData()->getSystem()->getSaveStateRepository()->hasSaveStates(cursor))))
+			if (FamilyProfiles::enabled() || (SaveStateRepository::isEnabled(cursor) &&
+				(cursor->getCurrentGameSetting("savestates") == "1" || (cursor->getCurrentGameSetting("savestates") == "2" && cursor->getSourceFileData()->getSystem()->getSaveStateRepository()->hasSaveStates(cursor)))))
 			{
 				mWindow->pushGui(new GuiSaveState(mWindow, cursor, [this, cursor](SaveState* state)
 				{
