@@ -3,6 +3,7 @@
 param(
     [string]$SourceRoot,
     [string]$BuildRoot,
+    [string]$LauncherBuildRoot,
     [string]$CMakePath = 'cmake'
 )
 
@@ -22,6 +23,10 @@ if ([string]::IsNullOrWhiteSpace($SourceRoot)) {
     }
 }
 if ([string]::IsNullOrWhiteSpace($BuildRoot)) { $BuildRoot = Join-Path $workspaceRoot 'work\emulationstation-build-baseline' }
+if (-not $LauncherBuildRoot) { $LauncherBuildRoot = Join-Path $workRoot 'emulatorlauncher\emulatorLauncher\bin\x64\Release' }
+foreach ($file in @('emulatorLauncher.exe', 'EmulatorLauncher.Common.dll')) {
+    if (-not (Test-Path -LiteralPath (Join-Path $LauncherBuildRoot $file) -PathType Leaf)) { throw "Build the matching thumbnail-fixed launcher first; missing $file in $LauncherBuildRoot" }
+}
 $outputRoot = [IO.Path]::GetFullPath($scriptRoot)
 $sourceRoot = [IO.Path]::GetFullPath($SourceRoot)
 $buildRoot = [IO.Path]::GetFullPath($BuildRoot)
@@ -69,6 +74,9 @@ try {
     $null = New-Item -ItemType Directory -Path $familyStage -Force
     $null = New-Item -ItemType Directory -Path $emulationStationStage -Force
     Copy-Item -LiteralPath $nativeExe -Destination (Join-Path $emulationStationStage 'emulationstation.exe')
+    foreach ($file in @('emulatorLauncher.exe', 'EmulatorLauncher.Common.dll')) {
+        Copy-Item -LiteralPath (Join-Path $LauncherBuildRoot $file) -Destination (Join-Path $emulationStationStage $file)
+    }
 
     $pickerBuildScript = Join-Path $outputRoot 'family\Build-FamilyProfilePicker.ps1'
     $pickerSource = Join-Path $outputRoot 'family\FamilyProfilePicker.cs'
