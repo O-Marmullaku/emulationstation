@@ -2328,6 +2328,9 @@ BindableProperty SystemData::getProperty(const std::string& name)
 	if (name == "mostPlayed")
 		return info->mostPlayed;
 
+	if (name == "gameTimeReadable")
+		return FamilyUsage::readablePlayTime(info->playTime);
+
 	if (name == "gameTime" && (info->playTime != 0 || FamilyProfiles::enabled()))
 	{
 		auto seconds = info->playTime;

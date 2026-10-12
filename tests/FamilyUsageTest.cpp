@@ -20,6 +20,13 @@ template<class F> static void mustThrow(F action)
 int main()
 {
 	namespace fu = FamilyUsage;
+	CHECK(fu::readablePlayTime(11030) == "3 hours 3 minutes");
+	CHECK(fu::readablePlayTime(3660) == "1 hour 1 minute");
+	CHECK(fu::readablePlayTime(3600) == "1 hour 0 minutes");
+	CHECK(fu::readablePlayTime(60) == "1 minute");
+	CHECK(fu::readablePlayTime(59) == "0 minutes");
+	CHECK(fu::readablePlayTime(0) == "0 minutes");
+	CHECK(fu::readablePlayTime(90000) == "25 hours 0 minutes");
 	const auto nonce = std::chrono::steady_clock::now().time_since_epoch().count();
 	const auto root = fu::fs::temp_directory_path() / ("family-usage-test-" + std::to_string(nonce));
 	fu::fs::create_directories(root);

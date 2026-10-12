@@ -32,6 +32,15 @@ class FileData;
 namespace FamilyUsage {
 namespace fs = std::filesystem;
 
+inline std::string readablePlayTime(std::int64_t seconds)
+{
+	seconds = std::max<std::int64_t>(0, seconds);
+	const auto hours = seconds / 3600;
+	const auto minutes = seconds / 60 % 60;
+	const auto minuteText = std::to_string(minutes) + (minutes == 1 ? " minute" : " minutes");
+	return hours == 0 ? minuteText : std::to_string(hours) + (hours == 1 ? " hour " : " hours ") + minuteText;
+}
+
 struct Snapshot {
 	std::map<std::string, std::int64_t> baseline;
 	std::map<std::string, std::map<std::string, std::int64_t>> profiles;

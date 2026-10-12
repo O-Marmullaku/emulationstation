@@ -77,10 +77,10 @@ def refresh(theme):
     (tiles/'header.svg').write_text('''<svg xmlns="http://www.w3.org/2000/svg" width="1920" height="100" viewBox="0 0 1920 100">
 <rect width="1920" height="99" fill="#FFFFFF" opacity=".025"/><path d="M0 99H1920" stroke="#FFFFFF" opacity=".20"/>
 <circle cx="75" cy="50" r="33" fill="#101010" stroke="#FFFFFF" stroke-width="1.5"/>
-<rect x="695" y="18" width="530" height="63" rx="32" fill="#080808" opacity=".72"/>
-<path d="M934 34V64" stroke="#FFFFFF" opacity=".7"/>
-<g transform="translate(743 35)" fill="none" stroke="#FFFFFF" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M7 2H29Q34 2 36 9L40 25Q40 30 35 28L27 20H10L3 28Q-2 30-1 24L2 9Q3 2 7 2Z"/><path d="M10 8V17M6 12H14"/><circle cx="28" cy="9" r="1"/><circle cx="32" cy="14" r="1"/></g>
-<g transform="translate(991 50)" fill="none" stroke="#FFFFFF" stroke-width="3"><circle r="14"/><path d="M0-9V0H7"/></g></svg>''',encoding='utf-8')
+<rect x="590" y="18" width="740" height="63" rx="32" fill="#080808" opacity=".72"/>
+<path d="M830 34V64" stroke="#FFFFFF" opacity=".7"/>
+<g transform="translate(638 35)" fill="none" stroke="#FFFFFF" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M7 2H29Q34 2 36 9L40 25Q40 30 35 28L27 20H10L3 28Q-2 30-1 24L2 9Q3 2 7 2Z"/><path d="M10 8V17M6 12H14"/><circle cx="28" cy="9" r="1"/><circle cx="32" cy="14" r="1"/></g>
+<g transform="translate(887 50)" fill="none" stroke="#FFFFFF" stroke-width="3"><circle r="14"/><path d="M0-9V0H7"/></g></svg>''',encoding='utf-8')
     logos = theme / '_theme_inc/images/logos'
     # Prefer the theme's white marks, otherwise normalize its regular vector.
     for source in sorted(logos.glob('*.svg')):
@@ -156,8 +156,8 @@ def refresh(theme):
     props(view,'image','family-hardware',path='./_theme_inc/images/consoles/${system.theme}.png',pos='0.020 0.55',maxSize='0.305 0.31',origin='0 0',zIndex='75')
     def text(name, content, pos, size, font=.025, color='EDF0F5'):
         props(view,'text',name,text=content,pos=pos,size=size,fontPath='./_theme_inc/fonts/SST Roman.ttf',fontSize=font,color=color,alignment='left',verticalAlignment='top',zIndex='80',lineSpacing='1.15')
-    text('family-library','{binding:total} games','.414 .035','.071 .036',.023)
-    text('family-header-playtime','{binding:gameTime} played','.536 .035','.101 .036',.023)
+    text('family-library','{binding:total} games','.359 .035','.071 .036',.023)
+    text('family-header-playtime','{binding:gameTimeReadable} played','.481 .035','.202 .036',.023)
     for name in ('family-library','family-header-playtime'):
         view.find(f"text[@name='{name}']/zIndex").text='100'
     text('family-subtitle','${system.manufacturer} · ${system.releaseYear}','.349 .505','.5 .038',.029,'${family.accent}')
