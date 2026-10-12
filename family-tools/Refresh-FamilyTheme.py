@@ -205,10 +205,10 @@ def refresh(theme):
     loading=ET.SubElement(splash,'view',name='splash')
     props(loading,'splash','splash',backgroundColor='${family.bg}')
     props(loading,'image','background',path='./family-tiles/${family.skin}/waves.svg',pos='0 0',size='1 1',origin='0 0',color='FFFFFF')
-    avatar=props(loading,'image','avatar',path='./_theme_options/avatars/${image.avatar}',pos='.5 .41',maxSize='.075 .12',origin='.5 .5',roundCorners='.5',zIndex='10')
+    avatar=props(loading,'image','avatar',path='./_theme_options/avatars/${image.avatar}',pos='.5 .41',maxSize='.0675 .12',origin='.5 .5',roundCorners='.08',zIndex='10')
     ET.SubElement(avatar,'path',ifSubset='system-avatar:custom').text='./custom-avatar.png'
     ET.SubElement(avatar,'path',ifSubset='system-avatar:angry_cat').text='./family-avatars/angry_cat.png'
-    props(loading,'text','username',text='${settings.FamilyProfileName}',pos='.3 .49',size='.4 .05',fontPath='./_theme_inc/fonts/SST Bold.ttf',fontSize='.030',color='FFFFFF',alignment='center',zIndex='10')
+    props(loading,'text','username',text='${settings.FamilyProfileName}',pos='.25 .49',size='.5 .065',fontPath='./_theme_inc/fonts/SST Bold.ttf',fontSize='.042',color='FFFFFF',alignment='center',zIndex='10')
     props(loading,'text','label',visible='false')
     props(loading,'image','progressbar',pos='.4 .575',size='.2 .004',origin='0 0',color='${family.panel}',colorEnd='${family.panel}')
     props(loading,'image','progressbar:active',color='${family.accent}',colorEnd='${family.accent}')
