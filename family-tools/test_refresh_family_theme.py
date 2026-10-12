@@ -27,7 +27,10 @@ class RefreshTest(unittest.TestCase):
                 self.assertIsNotNone(layout.find(f"variables/family.accent[@ifSubset='colorset:{palette}']"))
             self.assertEqual(layout.find("view/image[@name='background-art']/visible").text,'false')
             self.assertEqual(layout.find("view/video[@name='system_video']/visible").text,'false')
-            self.assertEqual(layout.find("view/image[@name='logo']/path").text,'./family-tiles/${system.theme}.svg')
+            self.assertEqual(layout.find("view/image[@name='logo']/path").text,'./family-tiles/${family.skin}/${system.theme}.svg')
+            for palette, colors in module.SURFACES.items():
+                self.assertIn('#'+colors[0],(root/f'family-tiles/{palette}/ps2.svg').read_text())
+                self.assertIn('#'+colors[3],(root/f'family-tiles/{palette}/waves.svg').read_text())
             elements=layout.find("view[@name='system']")
             self.assertEqual(len(elements),len({node.get('name') for node in elements}))
             self.assertIn('{binding:total}',layout.find("view/text[@name='family-stats']/text").text)

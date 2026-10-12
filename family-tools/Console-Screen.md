@@ -2,7 +2,7 @@
 
 `Import-PlayStationTheme.py` applies `Refresh-FamilyTheme.py` after importing the locally owned PlayStation-X theme. Run the latter against an existing installed theme to update only the shared console screen. Keep the two scripts together. Profile preferences, save ownership, input mappings and music are not changed.
 
-The screen uses the existing console SVG marks inside rounded gradient tiles, with framed info panels and subtle background waves. Blue, pink and black palette tokens tint the same vector surfaces, without profile-name tests. Original artwork and credits remain in the installation. The oversized system backdrop and advertising videos are hidden on the console screen. Game-list views are unchanged.
+The screen uses the existing console SVG marks inside rounded gradient tiles, with framed info panels and illuminated background ribbons. Blue, pink and black palettes generate separate surface assets and lighter logo ink, avoiding washed-out multiplicative color tints. No profile-name tests are used. Original artwork and credits remain in the installation. The oversized system backdrop and advertising videos are hidden on the console screen. Game-list views are unchanged.
 
 The lower screen contains a console hardware image, a short information panel and a stats panel. PS2 has curated copy; other systems show their existing manufacturer, release year, library count and scoped playtime. The old paragraph is hidden. Playtime still follows Personal / Everyone.
 
@@ -13,6 +13,8 @@ The avatar remains a profile preference (`subset.system-avatar`). The `angry_cat
 ## Hardware footage
 
 The local theme only contains advertisements, not multi-angle console footage. Hardware PNGs are an honest fallback. To add actual hardware clips, place a UTF-8 `<system>.m3u` in `family-hardware/` inside the theme, referencing local clips relative to the playlist, then rerun the refresh script. Native `M3uPlaylist` shuffles the clips. No game-video randomizer or fake camera rotation is used.
+
+PS2 uses an optional higher-resolution `family-hardware/ps2.png` when present. The installed 4620×2100 transparent photograph is Evan-Amos's public-domain [Sony-PlayStation-2-30001-wController-L.png](https://commons.wikimedia.org/wiki/File:Sony-PlayStation-2-30001-wController-L.png), downloaded unchanged. The source repository does not bundle the photograph. The large PS mark is derived from the imported theme's existing PSX vector mark.
 
 ## PS2 copy sources
 
