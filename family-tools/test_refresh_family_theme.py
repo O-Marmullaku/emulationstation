@@ -32,6 +32,10 @@ class RefreshTest(unittest.TestCase):
             self.assertEqual(len(elements),len({node.get('name') for node in elements}))
             self.assertIn('{binding:total}',layout.find("view/text[@name='family-stats']/text").text)
             self.assertNotIn('Osman',before.decode())
+            self.assertNotIn('Historical sales',before.decode())
+            self.assertIn('4 March 2000',before.decode())
+            self.assertTrue((root/'family-tiles/surface.svg').is_file())
+            self.assertTrue((root/'family-tiles/waves.svg').is_file())
             self.assertIn('#FFFFFF',(root/'family-tiles/ps2.svg').read_text())
 
 
